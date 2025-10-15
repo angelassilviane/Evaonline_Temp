@@ -1,0 +1,265 @@
+# ===========================================
+# CI/CD PIPELINE - EVAonline
+# ===========================================
+# Pipeline automatizado para testes, linting e build
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, feature/**]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: # Permite execução manual
+
+env:
+  PYTHON_VERSION: "3.10"
+  POSTGRES_VERSION: "15"
+  REDIS_VERSION: "7"
+
+jobs:
+  # ===========================================
+  # Job 1: Linting e Formatação
+  # ===========================================
+  lint:
+    name: 🔍 Linting & Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black flake8 isort mypy
+
+      - name: 🎨 Check code formatting (Black)
+        run: black --check --diff backend/ tests/
+
+      - name: 📋 Check import sorting (isort)
+        run: isort --check-only --diff backend/ tests/
+
+      - name: 🔎 Lint with Flake8
+        run: |
+          flake8 backend/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 backend/ tests/ --count --max-complexity=10 --max-line-length=100 --statistics
+
+      - name: 🔬 Type checking (MyPy)
+        run: mypy backend/ --ignore-missing-imports
+        continue-on-error: true # Não falhar por erros de tipo (por enquanto)
+
+  # ===========================================
+  # Job 2: Security Scan
+  # ===========================================
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 🔐 Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+
+      - name: 📦 Install safety
+        run: pip install safety
+
+      - name: 🛡️ Check dependencies for vulnerabilities
+        run: safety check --json || true
+        continue-on-error: true
+
+  # ===========================================
+  # Job 3: Unit Tests
+  # ===========================================
+  test-unit:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio pytest-mock
+
+      - name: 🧪 Run unit tests
+        run: |
+          pytest tests/ -m "unit" -v \
+            --cov=backend \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --ignore=tests/integration/ \
+            --ignore=tests/api/
+        continue-on-error: true # Não falhar se não houver testes unitários ainda
+
+      - name: 📊 Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+        continue-on-error: true
+
+  # ===========================================
+  # Job 4: Integration Tests
+  # ===========================================
+  test-integration:
+    name: 🔗 Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:${{ env.POSTGRES_VERSION }}-3.4
+        env:
+          POSTGRES_DB: evaonline_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio redis sqlalchemy psycopg2-binary
+
+      - name: 🔗 Run integration tests
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: evaonline_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_DB: 1
+        run: |
+          pytest tests/integration/ -v \
+            --cov=backend \
+            --cov-report=xml \
+            --cov-report=term-missing
+        continue-on-error: true
+
+      - name: 📊 Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: integration
+          name: codecov-integration
+        continue-on-error: true
+
+  # ===========================================
+  # Job 5: Build Docker Image
+  # ===========================================
+  build-docker:
+    name: 🐳 Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [lint, test-unit]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🐳 Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: evaonline:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          target: runtime
+
+      - name: 🧪 Test Docker image
+        run: |
+          docker build -t evaonline:test --target testing .
+          # docker run --rm evaonline:test
+        continue-on-error: true
+
+  # ===========================================
+  # Job 6: Dependabot Auto-merge
+  # ===========================================
+  dependabot:
+    name: 🤖 Dependabot Auto-merge
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    needs: [lint, test-unit, test-integration]
+
+    steps:
+      - name: ✅ Auto-merge Dependabot PRs
+        uses: ahmadnassri/action-dependabot-auto-merge@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          target: minor
+
+  # ===========================================
+  # Job 7: Notification
+  # ===========================================
+  notify:
+    name: 📢 Notify Results
+    runs-on: ubuntu-latest
+    needs: [lint, security, test-unit, test-integration, build-docker]
+    if: always()
+
+    steps:
+      - name: 📊 Check job statuses
+        run: |
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          echo "Unit Tests: ${{ needs.test-unit.result }}"
+          echo "Integration Tests: ${{ needs.test-integration.result }}"
+          echo "Docker Build: ${{ needs.build-docker.result }}"
