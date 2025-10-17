@@ -5,14 +5,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from backend.api.middleware.prometheus_metrics import (API_ACTIVE_REQUESTS,
-                                                       API_REQUEST_DURATION,
-                                                       API_REQUESTS,
-                                                       CACHE_HITS,
-                                                       CACHE_MISSES,
-                                                       CELERY_TASK_DURATION,
-                                                       CELERY_TASKS_TOTAL,
-                                                       POPULAR_DATA_ACCESSES)
+from backend.api.middleware.prometheus_metrics import (
+    API_ACTIVE_REQUESTS,
+    API_REQUEST_DURATION,
+    API_REQUESTS,
+    CACHE_HITS,
+    CACHE_MISSES,
+    CELERY_TASK_DURATION,
+    CELERY_TASKS_TOTAL,
+    POPULAR_DATA_ACCESSES,
+)
 from backend.api.routes import api_router
 from backend.api.websocket.websocket_service import router as websocket_router
 from config.settings.app_settings import get_settings
@@ -69,11 +71,35 @@ def mount_dash(app: FastAPI) -> FastAPI:
     # Converter WSGI app para ASGI app
     asgi_app = WsgiToAsgi(dash_app.server)
     
-    # IMPORTANTE: mount() com "/" deve ser o ÚLTIMO, senão captura tudo
-    # Mas como temos rotas da API já registradas, elas têm precedência
+    # IMPORTANTE: Criar sub-application para evitar conflito de rotas
+    # Solução: Montar Dash apenas em paths que NÃO começam com /api ou /metrics
+    from fastapi import Request, Response
+    from starlette.types import Receive, Scope, Send
+    
+    class DashApp:
+        """Wrapper que só encaminha para Dash se não for rota da API."""
+        def __init__(self, asgi_app):
+            self.asgi_app = asgi_app
+        
+        async def __call__(self, scope: Scope, receive: Receive, send: Send):
+            path = scope.get("path", "")
+            
+            # Não interceptar rotas da API, WebSocket, ou métricas
+            if (path.startswith("/api/") or 
+                path.startswith("/metrics") or
+                path.startswith("/ws")):
+                # Deixar FastAPI processar
+                # (Isto nunca deve ser alcançado se rotas estão registradas)
+                response = Response("Not Found", status_code=404)
+                await response(scope, receive, send)
+                return
+            
+            # Encaminhar para Dash
+            await self.asgi_app(scope, receive, send)
+    
     app.mount(
         settings.DASH_URL_BASE_PATHNAME,
-        asgi_app,
+        DashApp(asgi_app),
         name="dash_app"
     )
     return app

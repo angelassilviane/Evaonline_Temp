@@ -57,6 +57,9 @@ else:
         f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
     )
 
+# Open-Meteo Elevation API URL
+OPENMETEO_ELEVATION_URL = "https://api.open-meteo.com/v1/elevation"
+
 
 class ElevationConfig(BaseModel):
     """Configuração da API de Elevação."""
@@ -346,6 +349,9 @@ def get_openmeteo_elevation(
     Este wrapper existe apenas para compatibilidade com código legado
     que ainda não foi migrado para async/await.
     
+    IMPORTANTE: Usa httpx.Client (síncrono) para evitar conflito com
+    event loops existentes (ex: Dash/FastAPI).
+    
     Args:
         lat: Latitude (-90 a 90)
         long: Longitude (-180 a 180)
@@ -357,10 +363,196 @@ def get_openmeteo_elevation(
         >>> elevation, warnings = get_openmeteo_elevation(-15.7939, -47.8828)
         >>> print(f"Elevation: {elevation}m")
     """
-    import asyncio
-
-    # Executa função assíncrona de forma síncrona
-    return asyncio.run(get_elevation_async(lat, long))
+    import httpx
+    from loguru import logger
+    
+    warnings = []
+    
+    # Validar coordenadas
+    if not -90 <= lat <= 90:
+        raise ValueError(
+            f"Latitude inválida: {lat}. Deve estar entre -90 e 90."
+        )
+    if not -180 <= long <= 180:
+        raise ValueError(
+            f"Longitude inválida: {long}. Deve estar entre -180 e 180."
+        )
+    
+    # Verificar cache Redis (se disponível)
+    cache_key = f"elevation:{lat:.4f}:{long:.4f}"
+    try:
+        import redis
+        redis_client = redis.Redis(
+            host=REDIS_HOST,
+            port=REDIS_PORT,
+            password=REDIS_PASSWORD,
+            db=REDIS_DB,
+            decode_responses=True
+        )
+        
+        # Rate Limiting - Open-Meteo Terms (Non-Commercial):
+        # ✅ 10,000 calls/day
+        # ✅ 5,000 calls/hour
+        # ✅ 600 calls/minute
+        # Implementamos com margem de segurança (95% dos limites)
+        
+        # Verificar limite por MINUTO (600/min → 570 com margem)
+        minute_key = "elevation:rate_limit:minute"
+        minute_count = redis_client.get(minute_key)
+        if minute_count and int(minute_count) >= 570:
+            logger.error(
+                "⛔ Rate limit MINUTE exceeded: 570/600 requests/min"
+            )
+            warnings.append(
+                "Too many requests. Please wait 1 minute."
+            )
+            raise ValueError(
+                "Rate limit exceeded (600 requests/minute). "
+                "Please slow down."
+            )
+        
+        # Verificar limite por HORA (5000/hour → 4750 com margem)
+        hour_key = "elevation:rate_limit:hour"
+        hour_count = redis_client.get(hour_key)
+        if hour_count and int(hour_count) >= 4750:
+            logger.error(
+                "⛔ Rate limit HOUR exceeded: 4750/5000 requests/hour"
+            )
+            warnings.append(
+                "Hourly limit reached. Try again in 1 hour."
+            )
+            raise ValueError(
+                "Rate limit exceeded (5000 requests/hour). "
+                "Please try again later."
+            )
+        
+        # Verificar limite por DIA (10000/day → 9500 com margem)
+        day_key = "elevation:rate_limit:day"
+        day_count = redis_client.get(day_key)
+        if day_count and int(day_count) >= 9500:
+            logger.error(
+                "⛔ Rate limit DAY exceeded: 9500/10000 requests/day"
+            )
+            warnings.append(
+                "Daily limit reached. Try again tomorrow."
+            )
+            raise ValueError(
+                "Rate limit exceeded (10000 requests/day). "
+                "Please try again tomorrow."
+            )
+        
+        # Verificar cache (primeira prioridade)
+        cached = redis_client.get(cache_key)
+        if cached:
+            logger.info(
+                f"🎯 Cache HIT: Elevation lat={lat:.4f}, lon={long:.4f}"
+            )
+            return float(cached), warnings
+            
+    except redis.RedisError as e:
+        logger.warning(f"Redis cache unavailable: {e}")
+        redis_client = None
+    except ValueError:
+        # Re-raise rate limit errors
+        raise
+    
+    # Fazer requisição síncrona à API com retry
+    max_retries = 3
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                logger.info(f"🔄 Retry {attempt}/{max_retries-1}")
+            
+            logger.info(
+                f"🌐 Buscando Elevation API: lat={lat:.4f}, lon={long:.4f}"
+            )
+            
+            with httpx.Client(timeout=30.0) as client:
+                response = client.get(
+                    OPENMETEO_ELEVATION_URL,
+                    params={"latitude": lat, "longitude": long}
+                )
+                response.raise_for_status()
+                data = response.json()
+            
+            elevation = data.get("elevation", [None])[0]
+            
+            if elevation is None:
+                raise ValueError(
+                    "Elevação não disponível para esta localização"
+                )
+            
+            # Salvar no cache (30 dias) e incrementar contadores
+            if redis_client:
+                try:
+                    # Salvar elevação em cache
+                    redis_client.setex(cache_key, 2592000, str(elevation))
+                    logger.info(f"💾 Cache SAVE: Elevation {elevation}m")
+                    
+                    # Incrementar contadores de rate limit (3 janelas)
+                    pipe = redis_client.pipeline()
+                    
+                    # Minuto: 600/min (TTL: 60s)
+                    minute_key = "elevation:rate_limit:minute"
+                    pipe.incr(minute_key)
+                    pipe.expire(minute_key, 60)
+                    
+                    # Hora: 5000/hour (TTL: 3600s)
+                    hour_key = "elevation:rate_limit:hour"
+                    pipe.incr(hour_key)
+                    pipe.expire(hour_key, 3600)
+                    
+                    # Dia: 10000/day (TTL: 86400s)
+                    day_key = "elevation:rate_limit:day"
+                    pipe.incr(day_key)
+                    pipe.expire(day_key, 86400)
+                    
+                    results = pipe.execute()
+                    minute_count = results[0]
+                    hour_count = results[2]
+                    day_count = results[4]
+                    
+                    logger.info(
+                        f"📊 Rate limit - "
+                        f"Min: {minute_count}/600, "
+                        f"Hour: {hour_count}/5000, "
+                        f"Day: {day_count}/10000"
+                    )
+                    
+                except Exception as cache_error:
+                    logger.warning(f"Failed to save cache: {cache_error}")
+            
+            return float(elevation), warnings
+            
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                f"HTTP error {e.response.status_code}: {e.response.text}"
+            )
+            last_error = e
+            break  # Não retry em erros HTTP (404, 500, etc)
+            
+        except (httpx.ConnectError, httpx.TimeoutException) as e:
+            logger.warning(f"Network error (attempt {attempt+1}): {e}")
+            last_error = e
+            if attempt < max_retries - 1:
+                import time
+                time.sleep(1)  # Wait 1s before retry
+            continue
+            
+        except Exception as e:
+            logger.error(f"Elevation API error: {e}")
+            last_error = e
+            if attempt < max_retries - 1:
+                import time
+                time.sleep(0.5)  # Wait 0.5s before retry
+            continue
+    
+    # Se chegou aqui, todas as tentativas falharam
+    if last_error:
+        raise last_error
+    raise RuntimeError("Failed to get elevation after all retries")
 
 
 # Factory function

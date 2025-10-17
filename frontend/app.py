@@ -19,7 +19,6 @@ from dash.dependencies import ALL, Input, Output, State
 from loguru import logger
 from timezonefinderL import TimezoneFinder
 
-from backend.core.map_results.map_results import create_world_real_map
 from config.settings.app_settings import get_settings
 from frontend.components.footer import render_footer
 from frontend.components.navbar import render_navbar
@@ -128,16 +127,26 @@ def create_dash_app() -> dash.Dash:
     """
     Cria e configura o aplicativo Dash.
     """
+    print("\n" + "="*80)
+    print("🚀 CRIANDO APLICATIVO DASH...")
+    print("="*80 + "\n")
+    
     app = dash.Dash(
         __name__,
         requests_pathname_prefix="/",
         assets_folder=settings.DASH_ASSETS_FOLDER,
         external_stylesheets=[
             dbc.themes.BOOTSTRAP,
+            # CSS
             'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+            'frontend/assets/styles/styles.css'
         ],
         external_scripts=[
+            # Bootstrap JavaScript
+            'https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js',
+            'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js',
+            # Leaflet para mapas
             'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
         ],
         suppress_callback_exceptions=True,
@@ -159,6 +168,170 @@ def create_dash_app() -> dash.Dash:
         # Footer global (aparece em todas as páginas)
         render_footer()
     ])
+
+    # =========================================================================
+    # CALLBACK DAS TABS DO MAPA MUNDIAL (usando dcc.Tabs)
+    # =========================================================================
+    @app.callback(
+        Output('map-tab-content', 'children'),
+        Input('map-tabs', 'value')
+    )
+    def render_map_tab_content(active_tab):
+        """
+        Renderiza conteúdo das tabs do mapa mundial.
+        
+        dcc.Tabs usa 'value' em vez de 'active_tab':
+        - tab-leaflet = Tab 1 (Mapa Leaflet - PRIMEIRA)
+        - tab-plotly = Tab 2 (Mapa Plotly - SEGUNDA)
+        """
+        print(f"\n{'='*80}")
+        print(f"🎯 CALLBACK TABS EXECUTADO! active_tab = {repr(active_tab)}")
+        print(f"{'='*80}\n")
+        
+        logger.info(f"🗺️ Tab ativa: {repr(active_tab)}")
+        
+        # =========================================================================
+        # TAB 1 (PADRÃO): Mapa Mundial Leaflet (interativo, clicável para ETo)
+        # =========================================================================
+        if active_tab in ['tab-leaflet', 'tab-0', None]:
+            print("🌍 Renderizando TAB 1: Mapa Leaflet (interativo)")
+            return dl.Map(
+                id="map", 
+                children=[
+                    dl.TileLayer(
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", 
+                            attribution='OpenStreetMap',
+                            noWrap=True  # Evita repetição do mapa
+                        )
+                    ], 
+                    center=[20, 0], 
+                    zoom=2,
+                    minZoom=2,  # Zoom mínimo para evitar múltiplos mapas
+                    maxZoom=18,  # Zoom máximo
+                    maxBounds=[[-90, -180], [90, 180]],  # Limita aos bounds do mundo
+                    maxBoundsViscosity=1.0,  # Impede scroll fora dos limites
+                    style={
+                        'width': '100%',
+                        'height': '550px',
+                        'cursor': 'pointer',
+                        'border-radius': '8px'
+                    }, 
+                    dragging=True, 
+                    scrollWheelZoom=True
+                )
+        
+        # =========================================================================
+        # TAB 2: Explorar Cidades (Plotly com 6.738 marcadores do banco)
+        # =========================================================================
+        elif active_tab in ['tab-plotly', 'tab-1']:
+            print("📊 Renderizando TAB 2: Mapa Plotly (6.738 cidades)")
+            try:
+                import pandas as pd
+                import plotly.express as px
+                import requests
+
+                # Buscar marcadores da API
+                response = requests.get(
+                    "http://localhost:8000/api/v1/world-locations/markers",
+                    timeout=10
+                )
+                response.raise_for_status()
+                markers_data = response.json()
+                
+                # Filtrar coordenadas inválidas
+                df = pd.DataFrame(markers_data)
+                original_count = len(df)
+                df = df[
+                    (df['lat'] >= -90) & (df['lat'] <= 90) &
+                    (df['lon'] >= -180) & (df['lon'] <= 180)
+                ]
+                filtered_count = len(df)
+                
+                if original_count != filtered_count:
+                    removed = original_count - filtered_count
+                    logger.warning(
+                        f"⚠️ Filtrados {removed} marcadores "
+                        f"com coordenadas inválidas"
+                    )
+                
+                # Criar mapa Plotly
+                fig = px.scatter_mapbox(
+                    df, 
+                    lat="lat", 
+                    lon="lon", 
+                    hover_name="name",
+                    hover_data={
+                        "country_code": True,
+                        "lat": ":.4f",
+                        "lon": ":.4f"
+                    },
+                    color_discrete_sequence=["#2d5016"],
+                    zoom=1,
+                    height=600
+                )
+                fig.update_layout(
+                    mapbox_style="open-street-map",
+                    margin={"r": 0, "t": 0, "l": 0, "b": 0},
+                    showlegend=False,
+                    hovermode='closest'
+                )
+                fig.update_traces(marker={"size": 5, "opacity": 0.7})
+                
+                return html.Div([
+                    dbc.Alert([
+                        html.I(className="fas fa-map-marked-alt me-2"),
+                        html.Span([
+                            html.Strong(f"{filtered_count:,} cidades"),
+                            " no banco de dados"
+                        ])
+                    ], color="success", className="py-2 px-3 mb-3"),
+                    dcc.Graph(
+                        figure=fig,
+                        style={'height': '550px'},
+                        config={
+                            'displayModeBar': False,  # Remove barra de ferramentas
+                            'scrollZoom': True
+                        }
+                    )
+                ])
+                
+            except Exception as e:
+                logger.error(f"❌ Erro ao carregar marcadores: {e}")
+                return dbc.Alert([
+                    html.I(className="fas fa-exclamation-triangle me-2"),
+                    f"Erro ao carregar marcadores: {e}"
+                ], color="danger")
+        
+        # =========================================================================
+        # FALLBACK: Retornar Tab 1 se o ID for desconhecido
+        # =========================================================================
+        else:
+            logger.warning(f"⚠️ Tab desconhecida: {repr(active_tab)} - usando Tab 1")
+            print(f"⚠️ Tab desconhecida: {repr(active_tab)} - renderizando Tab 1 (fallback)")
+            return dl.Map(
+                id="map", 
+                children=[
+                    dl.TileLayer(
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", 
+                        attribution='OpenStreetMap',
+                        noWrap=True
+                    )
+                ], 
+                center=[20, 0], 
+                zoom=2,
+                minZoom=2,
+                maxZoom=18,
+                maxBounds=[[-90, -180], [90, 180]],
+                maxBoundsViscosity=1.0,
+                style={
+                    'width': '100%',
+                    'height': '550px',
+                    'cursor': 'pointer',
+                    'border-radius': '8px'
+                }, 
+                dragging=True, 
+                scrollWheelZoom=True
+            )
 
     # Callback para roteamento de páginas
     @app.callback(
@@ -404,315 +577,129 @@ def create_dash_app() -> dash.Dash:
             )
         return children
 
-    # Callback para info de clique
+    # =========================================================================
+    # CALLBACK: Atualizar alerta com coordenadas (geolocalização, erro ou clique)
+    # =========================================================================
     @app.callback(
         Output('click-info', 'children'),
-        [Input('map', 'clickData')],
-        prevent_initial_call=True
+        [
+            Input('geolocation', 'position'),
+            Input('geolocation', 'position_error'),
+            Input('map', 'clickData')
+        ],
+        prevent_initial_call=False
     )
-    def update_click_info(clickData):
-        if clickData:
+    def update_click_info_unified(geo_position, geo_error, clickData):
+        """
+        Atualiza o alerta azul com:
+        - Coordenadas do usuário (geolocation.position) quando permitido
+        - Mensagem de erro se geolocation negado (geolocation.position_error)
+        - Coordenadas do clique no mapa (map.clickData) se usuário clicar manualmente
+        
+        Prioridade: geo_position > geo_error > clickData
+        """
+        ctx = dash.callback_context
+        
+        if not ctx.triggered:
+            # Inicial: mostrar mensagem padrão
+            return dbc.Alert([
+                html.I(className="fas fa-info-circle me-2"),
+                "Clique em ",
+                html.Strong("qualquer ponto do mapa"),
+                " para calcular ETo"
+            ], color="info", className="py-2 px-3 mb-0")
+        
+        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        
+        # Prioridade 1: Geolocalização (usuário permitiu)
+        if triggered_id == 'geolocation' and geo_position:
+            lat = geo_position.get('lat', 0)
+            lng = geo_position.get('lon', 0)
+            
+            elevation = get_elevation(lat, lng)
+            alt = f"{elevation:.1f} m" if elevation is not None else "N/A"
+            lat_fmt, lng_fmt = format_coordinates(lat, lng)
+            
+            return dbc.Alert([
+                html.I(className="fas fa-crosshairs me-2", style={"color": "#0dcaf0"}),
+                html.Strong("Sua localização atual: ", style={"color": "#055160"}),
+                html.B("Latitude: "), lat_fmt, " | ",
+                html.B("Longitude: "), lng_fmt, " | ",
+                html.B("Altitude: "), alt
+            ], color="info", className="py-2 px-3 mb-0")
+        
+        # Prioridade 2: Erro de geolocalização (usuário negou ou erro)
+        if triggered_id == 'geolocation' and geo_error:
+            error_msg = geo_error.get('message', 'Erro desconhecido')
+            return dbc.Alert([
+                html.I(className="fas fa-exclamation-triangle me-2"),
+                html.Strong("Geolocalização não disponível: "),
+                error_msg,
+                ". Clique no mapa para selecionar uma localização."
+            ], color="warning", className="py-2 px-3 mb-0")
+        
+        # Prioridade 3: Clique no mapa
+        if triggered_id == 'map' and clickData:
             try:
                 lat = clickData['latlng']['lat']
                 lng = clickData['latlng']['lng']
+                
+                elevation = get_elevation(lat, lng)
+                alt = f"{elevation:.1f} m" if elevation is not None else "N/A"
+                lat_fmt, lng_fmt = format_coordinates(lat, lng)
+                
+                return dbc.Alert([
+                    html.I(className="fas fa-map-pin me-2"),
+                    html.B("Latitude: "), lat_fmt, " | ",
+                    html.B("Longitude: "), lng_fmt, " | ",
+                    html.B("Altitude: "), alt
+                ], color="info", className="py-2 px-3 mb-0")
             except (KeyError, TypeError):
-                return [
-                    html.Div(
-                        "Clique em qualquer ponto do mapa para ver "
-                        "as coordenadas e calcular a ET.",
-                        className="mb-0"
-                    )
-                ]
-            
-            # Buscar altitude
-            elevation = get_elevation(lat, lng)
-            alt_str = f"{elevation:.1f} m" if elevation is not None else "N/A"
-            
-            lat_fmt, lng_fmt = format_coordinates(lat, lng)
-            
-            # Buscar fuso horário e hora local
-            tf = TimezoneFinder()
-            tz_name = tf.timezone_at(lng=lng, lat=lat)
-            
-            if tz_name:
-                tz = pytz.timezone(tz_name)
-                current_time = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-                info_text = (
-                    f"📍 {lat_fmt}, {lng_fmt} | Alt: {alt_str} "
-                    f"(Fuso: {tz_name}, Hora: {current_time})"
-                )
-            else:
-                info_text = f"📍 {lat_fmt}, {lng_fmt} | Alt: {alt_str}"
-            
-            return [
-                html.Div([
-                    html.Span(info_text, 
-                             className="text-dark",
-                             style={"fontSize": "13px"})
-                ], className="d-flex align-items-center")
-            ]
-        return [
-            html.Div([
-                html.I(className="fas fa-hand-pointer text-muted me-2",
-                      style={"fontSize": "13px"}),
-                html.Span(
-                    "👆 Clique no mapa para ver coordenadas",
-                    className="text-muted",
-                    style={"fontSize": "13px"}
-                )
-            ], className="d-flex align-items-center")
-        ]
-
-    # Callback para salvar erro de geolocalização no Store
-    @app.callback(
-        Output('geolocation-error', 'data'),
-        [Input('geolocation', 'position_error')]
-    )
-    def save_geolocation_error(position_error):
-        if position_error:
-            return position_error
-        return None
-
-    # Callback para exibir aviso persistente de erro de geolocalização
-    @app.callback(
-        Output('geolocation-error-msg', 'children'),
-        [Input('get-location-btn', 'n_clicks'),
-         Input('geolocation-error', 'data')]
-    )
-    def display_geolocation_error_msg(n_clicks, error_data):
-        if not error_data:
-            return []
+                return dash.no_update
         
-        error_code = error_data.get('code') if isinstance(
-            error_data, dict) else None
-        
-        if error_code == 1:  # Permissão negada
-            return dbc.Alert([
-                html.I(className="fas fa-exclamation-triangle me-2"),
-                html.Span(
-                    "🚫 Acesso à localização negado. "
-                    "Permita o acesso nas configurações do navegador."
-                )
-            ], color="danger", className="small p-2 mb-0")
-        elif error_code == 2:  # Posição indisponível
-            return dbc.Alert([
-                html.I(className="fas fa-satellite-dish me-2"),
-                html.Span(
-                    "⚠️ Localização indisponível. "
-                    "Verifique se o GPS/Wi-Fi estão ativados."
-                )
-            ], color="warning", className="small p-2 mb-0")
-        elif error_code == 3:  # Timeout
-            return dbc.Alert([
-                html.I(className="fas fa-clock me-2"),
-                html.Span(
-                    "⏱️ Tempo esgotado. Tente novamente."
-                )
-            ], color="info", className="small p-2 mb-0")
-        else:
-            return dbc.Alert(
-                f"⚠️ Erro ao obter localização: {error_data}",
-                color="danger",
-                className="small p-2 mb-0"
-            )
-
-    # Callback para info de geoloc no click-info também
+        return dash.no_update
+    
+    # =========================================================================
+    # CALLBACK: Atualizar hrefs dos botões de ação com coordenadas
+    # =========================================================================
     @app.callback(
-        [Output('click-info', 'children', allow_duplicate=True),
-         Output('quick-actions-panel', 'children', allow_duplicate=True),
-         Output('selected-location', 'data', allow_duplicate=True),
-         Output('geolocation-error', 'data', allow_duplicate=True)],
-        [Input('geolocation', 'position'),
-         Input('geolocation', 'position_error')],
+        [
+            Output('calculate-daily-eto-btn', 'href'),
+            Output('calculate-period-eto-btn', 'href')
+        ],
+        [
+            Input('geolocation', 'position'),
+            Input('map', 'clickData')
+        ],
         prevent_initial_call=True
     )
-    def update_geoloc_info(position, position_error):
-        # Se houver erro, não exibir nada na área de info (topo)
-        # O erro já será mostrado na mensagem persistente abaixo do botão
-        # Mas sempre manter o botão de localização no painel
-        if position_error:
-            return dash.no_update, [
-                dbc.Button(
-                    [html.I(className="fas fa-location-arrow")],
-                    id="get-location-btn",
-                    color="success",
-                    size="sm",
-                    outline=True,
-                    title="Obter Minha Localização",
-                    className="me-1"
-                )
-            ], dash.no_update, position_error
+    def update_action_buttons_unified(geo_position, clickData):
+        """
+        Atualiza os links dos botões com as coordenadas.
+        Prioridade: geo_position > clickData
+        """
+        ctx = dash.callback_context
+        if not ctx.triggered:
+            return dash.no_update, dash.no_update
         
-        # Se tiver posição, limpar o erro e exibir informações completas
-        if position:
-            lat, lon = position.get('lat', 0), position.get('lon', 0)
-            
-            # Buscar altitude
-            elevation = get_elevation(lat, lon)
-            alt_str = f"{elevation:.1f} m" if elevation is not None else "N/A"
-            
-            lat_fmt, lng_fmt = format_coordinates(lat, lon)
-            
-            # Buscar fuso horário
-            tf = TimezoneFinder()
-            tz_name = tf.timezone_at(lng=lon, lat=lat)
-            
-            if tz_name:
-                tz = pytz.timezone(tz_name)
-                current_time = datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')
-                info_text = (
-                    f"📍 Lat: {lat_fmt}, Long: {lng_fmt}, "
-                    f"Alt: {alt_str} (Fuso: {tz_name}, "
-                    f"Hora: {current_time})"
-                )
-            else:
-                info_text = (
-                    f"📍 Lat: {lat_fmt}, Long: {lng_fmt}, "
-                    f"Alt: {alt_str}"
-                )
-            
-            # Criar painel de ações rápidas (compacto horizontal)
-            location_data = {'lat': lat, 'lng': lon}
-            
-            panel = [
-                dbc.Button(
-                    [html.I(className="fas fa-location-arrow")],
-                    id="get-location-btn",
-                    color="success",
-                    size="sm",
-                    outline=True,
-                    title="Obter Minha Localização",
-                    className="me-1",
-                    style={"width": "36px", "height": "31px", "padding": "0.25rem"}
-                ),
-                dbc.Button(
-                    [html.I(className="fas fa-calculator")],
-                    id="calc-eto-today-btn",
-                    color="primary",
-                    size="sm",
-                    title="Calcular ETo hoje",
-                    className="me-1",
-                    style={"width": "36px", "height": "31px", "padding": "0.25rem"}
-                ),
-                dbc.Button(
-                    [html.I(className="fas fa-chart-line")],
-                    id="calc-eto-period-btn",
-                    color="info",
-                    size="sm",
-                    title="Calcular ETo do período",
-                    className="me-1",
-                    style={"width": "36px", "height": "31px", "padding": "0.25rem"}
-                ),
-                dbc.Button(
-                    [html.I(className="fas fa-star")],
-                    id="save-favorite-btn",
-                    color="warning",
-                    size="sm",
-                    outline=True,
-                    title="Salvar nos favoritos",
-                    style={"width": "36px", "height": "31px", "padding": "0.25rem"}
-                )
-            ]
-            
-            return [
-                html.Div(info_text, className="mb-0",
-                        style={"fontSize": "13px"})
-            ], panel, location_data, None  # None limpa o erro
+        triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
         
-        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
-
-    # Callback para obter geolocalização
-    @app.callback(
-        Output('geolocation', 'update_now'),
-        [Input('get-location-btn', 'n_clicks')]
-    )
-    def update_geolocation(n_clicks):
-        if n_clicks:
-            return True
-        return False
-
-    # Callback para atualizar painel de ações rápidas
-    @app.callback(
-        [Output('quick-actions-panel', 'children'),
-         Output('selected-location', 'data')],
-        [Input('map', 'clickData')],
-        prevent_initial_call=True
-    )
-    def update_quick_actions(clickData):
-        if not clickData:
-            # Mantém apenas o botão de localização
-            return [
-                dbc.Button(
-                    [html.I(className="fas fa-location-arrow")],
-                    id="get-location-btn",
-                    color="success",
-                    size="sm",
-                    outline=True,
-                    title="Obter Minha Localização",
-                    className="me-1"
-                )
-            ], None
+        # Geolocalização
+        if triggered_id == 'geolocation' and geo_position:
+            lat = geo_position.get('lat', 0)
+            lng = geo_position.get('lon', 0)
+            return f"/eto?lat={lat}&lon={lng}", f"/eto?lat={lat}&lon={lng}"
         
-        try:
-            lat = clickData['latlng']['lat']
-            lng = clickData['latlng']['lng']
-        except (KeyError, TypeError):
-            return [
-                dbc.Button(
-                    [html.I(className="fas fa-location-arrow")],
-                    id="get-location-btn",
-                    color="success",
-                    size="sm",
-                    outline=True,
-                    title="Obter Minha Localização",
-                    className="me-1"
-                )
-            ], None
+        # Clique no mapa
+        if triggered_id == 'map' and clickData:
+            try:
+                lat = clickData['latlng']['lat']
+                lng = clickData['latlng']['lng']
+                return f"/eto?lat={lat}&lon={lng}", f"/eto?lat={lat}&lon={lng}"
+            except (KeyError, TypeError):
+                return dash.no_update, dash.no_update
         
-        location_data = {'lat': lat, 'lng': lng}
-        
-        # Painel completo com todos os botões
-        panel = [
-            dbc.Button(
-                [html.I(className="fas fa-location-arrow")],
-                id="get-location-btn",
-                color="success",
-                size="sm",
-                outline=True,
-                title="Obter Minha Localização",
-                className="me-1",
-                style={"width": "36px", "height": "31px", "padding": "0.25rem"}
-            ),
-            dbc.Button(
-                [html.I(className="fas fa-calculator")],
-                id="calc-eto-today-btn",
-                color="primary",
-                size="sm",
-                title="Calcular ETo hoje",
-                className="me-1",
-                style={"width": "36px", "height": "31px", "padding": "0.25rem"}
-            ),
-            dbc.Button(
-                [html.I(className="fas fa-chart-line")],
-                id="calc-eto-period-btn",
-                color="info",
-                size="sm",
-                title="Calcular ETo do período",
-                className="me-1",
-                style={"width": "36px", "height": "31px", "padding": "0.25rem"}
-            ),
-            dbc.Button(
-                [html.I(className="fas fa-star")],
-                id="save-favorite-btn",
-                color="warning",
-                size="sm",
-                outline=True,
-                title="Salvar nos favoritos",
-                style={"width": "36px", "height": "31px", "padding": "0.25rem"}
-            )
-        ]
-        
-        return panel, location_data
+        return dash.no_update, dash.no_update
 
     # Callback para calcular ETo do dia atual (abre modal)
     @app.callback(

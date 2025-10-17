@@ -250,3 +250,44 @@ a:not(.nav-link-custom):hover {
 .icon-md {
     font-size: var(--font-size-lg)
 }
+
+.nav-tabs .nav-link {
+    color: var(--esalq-green-dark) !important;
+    font-weight: bold !important;
+    font-size: 14px !important;
+    padding: 0.5rem 1rem !important;
+    border: 1px solid transparent !important;
+    border-top-left-radius: 0.25rem !important;
+    border-top-right-radius: 0.25rem !important;
+    transition: var(--transition-fast) !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--esalq-green-dark) !important;
+    background-color: #fff !important;
+    border-color: #dee2e6 #dee2e6 #fff !important;
+    font-weight: bold !important
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: #e9ecef #e9ecef #dee2e6 !important;
+    isolation: isolate !important;
+    background-color: rgba(45, 80, 22, 0.05) !important
+}
+
+.card-header-tabs {
+    margin-right: -0.625rem !important;
+    margin-bottom: -0.75rem !important;
+    margin-left: -0.625rem !important;
+    border-bottom: 0 !important
+}
+
+.nav-tabs .nav-link span,
+.nav-tabs .nav-link {
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important
+}

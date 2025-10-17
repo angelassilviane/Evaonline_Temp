@@ -472,22 +472,113 @@ a:not(.nav-link-custom):hover {
     z-index: 1010 !important;
 }
 
-/* 🆕 Classes customizadas para tooltips e popups do MATOPIBA */
-.custom-tooltip {
-    background-color: rgba(255, 255, 255, 0.95) !important;
-    border: 2px solid var(--esalq-green-dark) !important;
-    border-radius: 6px !important;
-    box-shadow: 0 3px 8px rgba(45, 80, 22, 0.3) !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
+/* ============================================
+   TABS - BOOTSTRAP TABS CUSTOMIZATION
+   ============================================ */
+
+/* 🔧 FIX: Garantir que labels das tabs apareçam */
+.nav-tabs .nav-link {
     color: var(--esalq-green-dark) !important;
-    padding: 8px 12px !important;
-    z-index: 1000 !important;
+    font-weight: bold !important;
+    font-size: 14px !important;
+    padding: 0.5rem 1rem !important;
+    border: 1px solid transparent !important;
+    border-top-left-radius: 0.25rem !important;
+    border-top-right-radius: 0.25rem !important;
+    transition: var(--transition-fast) !important;
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
-.custom-popup .leaflet-popup-content-wrapper {
-    border: 2px solid var(--esalq-green-dark) !important;
+/* Tab ativa */
+.nav-tabs .nav-link.active {
+    color: var(--esalq-green-dark) !important;
+    background-color: #fff !important;
+    border-color: #dee2e6 #dee2e6 #fff !important;
+    font-weight: bold !important;
 }
+
+/* Hover nas tabs */
+.nav-tabs .nav-link:hover {
+    border-color: #e9ecef #e9ecef #dee2e6 !important;
+    isolation: isolate !important;
+    background-color: rgba(45, 80, 22, 0.05) !important;
+}
+
+/* Container das tabs no header do card */
+/* ========================================================================== */
+/* 🗺️ TABS DO MAPA MUNDIAL (dcc.Tabs) */
+/* ========================================================================== */
+
+/* Container das tabs */
+.custom-tabs-container {
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* Cada tab */
+.custom-tab {
+    background-color: #f8f9fa !important;
+    border: 1px solid #dee2e6 !important;
+    border-bottom: none !important;
+    border-radius: 4px 4px 0 0 !important;
+    color: #2d5016 !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    padding: 12px 24px !important;
+    margin-right: 4px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Tab selecionada */
+.custom-tab-selected {
+    background-color: #ffffff !important;
+    border: 1px solid #dee2e6 !important;
+    border-bottom: 2px solid #ffffff !important;
+    color: #2d5016 !important;
+    font-weight: 700 !important;
+    margin-bottom: -2px !important;
+}
+
+/* Hover nas tabs */
+.custom-tab:hover {
+    background-color: #e9ecef !important;
+}
+
+/* Conteúdo das tabs */
+#map-tab-content {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+}
+
+/* Texto dentro das tabs - FORÇAR VISIBILIDADE */
+.nav-tabs .nav-link span,
+.nav-tabs .nav-link::before,
+.nav-tabs .nav-link::after {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: inline !important;
+}
+
+/* Remover qualquer overlay ou pseudo-elemento que possa estar escondendo */
+.nav-tabs::before,
+.nav-tabs::after,
+.card-header::before,
+.card-header::after {
+    display: none !important;
+}
+
+/* Garantir que o conteúdo das tabs seja visível */
+#map-tab-content {
+    padding: 1rem !important;
+    background-color: #ffffff !important;
+}
+
+
+
 
 /* 🎨 Marcadores SVG customizados do MATOPIBA */
 .custom-marker {
