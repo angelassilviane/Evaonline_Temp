@@ -68,6 +68,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-evaonline}
       - POSTGRES_DB=${POSTGRES_DB:-evaonline}
       - SERVICE=api
+      - API_BASE_URL=http://localhost:8000
     volumes:
       - ./backend:/app/backend
       - ./frontend:/app/frontend
@@ -77,7 +78,7 @@ services:
       - ./logs:/app/logs
     ports:
       - "8000:8000"
-      - "8050:8050"
+      - "8050:8000"
     depends_on:
       postgres:
         condition: service_healthy

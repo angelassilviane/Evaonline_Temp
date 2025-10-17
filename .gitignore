@@ -544,6 +544,37 @@ htmlcov/
 build_log.txt
 *.whl
 
+# ===========================================
+# Temporary Files (Limpeza 2025-10-17)
+# ===========================================
+# Arquivos temporários na raiz
+markers_response.json
+markers_test.json
+test_markers.json
+validation_nasa_power.md
+
+# Logs (manter estrutura com .gitkeep)
+logs/*.log
+!logs/.gitkeep
+!logs/README.md
+
+# Temp files (manter estrutura com .gitkeep)
+temp/*
+!temp/.gitkeep
+!temp/README.md
+
+# Cache adicional
+.benchmarks/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
 !data/SHAPEFILE_CLIMA_BR/*.dbf
 !start-monitoring.sh
 !start-monitoring.bat

@@ -1,9 +1,11 @@
 """
-Sistema de tabs para mapas mundiais (padrão oficial dbc.Tabs).
-Ref: https://dash-bootstrap-components.opensource.faculty.ai/docs/components/tabs/
+Mapa mundial interativo com Leaflet, camadas GeoJSON e marcadores.
 
-✅ Tab 1: Mapa Leaflet (calcular ETo)
-✅ Tab 2: Mapa Plotly (6.738 cidades)
+Features:
+- Mapa Leaflet interativo com camadas Brasil e MATOPIBA
+- Marcador especial: Piracicaba - ESALQ/USP
+- LocateControl para geolocalização
+- LayersControl para gerenciar camadas
 """
 import dash_bootstrap_components as dbc
 from dash import dcc, html
@@ -12,22 +14,21 @@ from loguru import logger
 
 def create_world_map_layout() -> html.Div:
     """
-    Cria layout completo com sistema de tabs (padrão oficial).
+    Cria layout completo com mapa mundial Leaflet interativo.
     
-    Estrutura:
-        dbc.Card([
-            dbc.CardHeader(dbc.Tabs([...])),
-            dbc.CardBody(id="map-tab-content")
-        ])
+    Inclui:
+    - Camadas GeoJSON (Brasil, MATOPIBA)
+    - Marcador especial (Piracicaba/ESALQ)
+    - LocateControl (geolocalização)
+    - LayersControl (gerenciar camadas)
     
-    O conteúdo é inserido via callback (ver world_map_tabs_callback.py)
+    O conteúdo é inserido via callback (ver map_callbacks.py)
     """
-    logger.info("🎨 Criando layout com tabs do mapa mundial")
+    logger.info("🎨 Criando layout do mapa mundial interativo")
     
     return html.Div([
         # Stores para persistência de dados
         dcc.Store(id='markers-store', data=[]),
-        dcc.Store(id='favorites-store', data=[], storage_type='local'),
         dcc.Store(id='selected-location-store', data=None),
         
         # Geolocalização
@@ -95,20 +96,9 @@ def create_world_map_layout() -> html.Div:
                                 color="primary",
                                 outline=True,
                                 size="sm",
-                                className="me-2",
                                 style={"width": "40px", "height": "38px"}
                             ),
-                            dbc.Tooltip("📅 Calcular ETo do Período", target="calculate-period-eto-btn", placement="bottom"),
-                            
-                            dbc.Button(
-                                html.I(className="fas fa-star fa-lg"),
-                                id="save-favorite-btn",
-                                color="warning",
-                                outline=True,
-                                size="sm",
-                                style={"width": "40px", "height": "38px"}
-                            ),
-                            dbc.Tooltip("⭐ Salvar nos favoritos", target="save-favorite-btn", placement="bottom")
+                            dbc.Tooltip("📅 Calcular ETo do Período", target="calculate-period-eto-btn", placement="bottom")
                         ], style={"display": "inline-block", "float": "right"})
                     ], className="d-flex justify-content-between align-items-center mb-2"),
                     
@@ -127,27 +117,10 @@ def create_world_map_layout() -> html.Div:
             html.Div(id='click-info', className="mb-2", children=''),
             html.Div(id='geolocation-error-msg', className="mb-3", children=''),
             
-            # SISTEMA DE TABS - Usando dcc.Tabs (nativo do Dash)
+            # Mapa Mundial Interativo (conteúdo inserido via callback)
             html.Div([
-                dcc.Tabs(
-                    id="map-tabs",
-                    value="tab-leaflet",
-                    children=[
-                        dcc.Tab(
-                            label="🌍 Mapa Mundial Interativo",
-                            value="tab-leaflet",
-                            className="custom-tab",
-                            selected_className="custom-tab-selected"
-                        ),
-                        dcc.Tab(
-                            label="📍 Explorar Cidades (6.738)",
-                            value="tab-plotly",
-                            className="custom-tab",
-                            selected_className="custom-tab-selected"
-                        ),
-                    ],
-                    className="custom-tabs-container"
-                ),
+                # Hidden input para manter compatibilidade com callback
+                dcc.Store(id="map-tabs", data="tab-leaflet"),
                 html.Div(id="map-tab-content", className="p-3")
             ], className="mb-3 card"),
             
@@ -156,97 +129,23 @@ def create_world_map_layout() -> html.Div:
                 dbc.AccordionItem([
                     html.P("📌 Instruções de uso:", className="fw-bold"),
                     html.Ul([
-                        html.Li("🗺️ Tab 1 (Mapa Mundial Interativo):"),
+                        html.Li("🗺️ Navegação no Mapa:"),
                         html.Ul([
                             html.Li("Clique em qualquer ponto do mapa para capturar coordenadas e altitude"),
-                            html.Li("📍 Use 'Minha Localização' para obter sua posição atual via GPS"),
-                            html.Li("🧮 Calcule ETo Diária ou do Período usando os botões de ação rápida"),
-                            html.Li("⭐ Salve até 20 localizações favoritas para acesso rápido")
+                            html.Li("📍 Use o botão de localização (canto superior esquerdo) para obter sua posição via GPS"),
+                            html.Li("🧮 Calcule ETo Diária ou do Período usando os botões de ação rápida acima")
                         ]),
-                        html.Li("📊 Tab 2 (Explorar Cidades):"),
+                        html.Li("🌍 Camadas Disponíveis:"),
                         html.Ul([
-                            html.Li("Visualize a distribuição de 6.738 cidades mundiais no mapa"),
-                            html.Li("Passe o mouse sobre os pontos para ver detalhes das cidades")
+                            html.Li("🇧🇷 Brasil: Contorno do território brasileiro (verde)"),
+                            html.Li("🌾 MATOPIBA: Região agrícola (Maranhão, Tocantins, Piauí, Bahia) em azul"),
+                            html.Li("🎓 Piracicaba: Marcador especial destacando a ESALQ/USP"),
+                            html.Li("Use o controle de camadas (canto superior direito) para ativar/desativar")
                         ]),
-                        html.Li("🌐 Fusão automática de 3 fontes climáticas (NASA POWER, MET Norway, NWS USA)"),
+                        html.Li("🌐 Fusão automática de dados climáticos (NASA POWER, MET Norway, NWS USA)"),
                     ])
                 ], title="ℹ️ Como usar o mapa")
-            ], start_collapsed=True, className="mb-3"),
+            ], start_collapsed=True, className="mb-3")
             
-            # Seção de Favoritos
-            html.Div([
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.Div([
-                            html.I(className="fas fa-star me-2", style={"color": "#ffc107"}),
-                            html.Strong("Favoritos "),
-                            html.Span(id='favorites-count', className="badge bg-secondary ms-2")
-                        ], style={"display": "inline-block"}),
-                        dbc.Button(
-                            [html.I(className="fas fa-trash me-2"), "Limpar Todos"],
-                            id="clear-all-favorites-btn",
-                            color="danger",
-                            size="sm",
-                            outline=True,
-                            className="float-end"
-                        )
-                    ]),
-                    dbc.CardBody([
-                        # Controles de paginação
-                        dbc.Row([
-                            dbc.Col([
-                                html.Label("Itens por página:", className="me-2"),
-                                dcc.Dropdown(
-                                    id='favorites-page-size',
-                                    options=[
-                                        {'label': '5', 'value': 5},
-                                        {'label': '10', 'value': 10},
-                                        {'label': '20', 'value': 20}
-                                    ],
-                                    value=5,
-                                    clearable=False,
-                                    style={'width': '100px', 'display': 'inline-block'}
-                                )
-                            ], width=6),
-                            dbc.Col([
-                                html.Div(id='favorites-current-page', 
-                                        style={'display': 'none'}, 
-                                        children=1)
-                            ], width=6)
-                        ], className="mb-3"),
-                        
-                        # Lista de favoritos
-                        html.Div(id='favorites-list'),
-                        
-                        # Paginação
-                        dbc.Row([
-                            dbc.Col([
-                                dbc.ButtonGroup([
-                                    dbc.Button("◀ Anterior", id="favorites-prev-page", 
-                                             outline=True, color="secondary", size="sm"),
-                                    dbc.Button(id="favorites-pagination-info", 
-                                             color="light", size="sm", disabled=True),
-                                    dbc.Button("Próximo ▶", id="favorites-next-page", 
-                                             outline=True, color="secondary", size="sm")
-                                ], className="w-100")
-                            ])
-                        ], id="favorites-pagination", className="mt-3")
-                    ])
-                ], className="shadow-sm")
-            ]),
-            
-        ], fluid=True),
-        
-        # Modal de confirmação para limpar favoritos
-        dbc.Modal([
-            dbc.ModalHeader(dbc.ModalTitle("⚠️ Confirmar Exclusão")),
-            dbc.ModalBody([
-                html.P(id='clear-favorites-count', className="mb-3"),
-                html.P("Esta ação não pode ser desfeita.", className="text-danger")
-            ]),
-            dbc.ModalFooter([
-                dbc.Button("Cancelar", id="cancel-clear-favorites", className="me-2"),
-                dbc.Button("Confirmar", id="confirm-clear-favorites", color="danger")
-            ])
-        ], id="clear-favorites-modal", is_open=False),
+        ], fluid=True)
     ])

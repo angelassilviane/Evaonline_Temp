@@ -1,9 +1,11 @@
 ﻿"""
-Página inicial do EVAonline com mapas interativos em abas.
+Página inicial do EVAonline com mapa mundial interativo.
 
-Sistema de tabs seguindo documentação oficial dbc.Tabs:
-- Tab 1: Mapa Leaflet (calcular ETo)
-- Tab 2: Mapa Plotly com 6.738 cidades (explorar)
+Features:
+- Mapa Leaflet interativo com camadas GeoJSON (Brasil, MATOPIBA)
+- Marcador especial: Piracicaba - ESALQ/USP
+- LocateControl para geolocalização
+- LayersControl para gerenciar camadas
 """
 import dash_bootstrap_components as dbc
 from dash import html
@@ -16,11 +18,14 @@ def home_layout() -> html.Div:
     """
     Cria o layout da página inicial com mapa mundial interativo.
     
-    Sistema de tabs (padrão oficial dbc.Tabs):
-    - Tab 1: Mapa Leaflet interativo (clique para calcular ETo)
-    - Tab 2: Mapa Plotly com 6.738 cidades pré-carregadas
+    Inclui:
+    - Mapa Leaflet interativo (clique para calcular ETo)
+    - Camadas GeoJSON (Brasil verde, MATOPIBA azul)
+    - Marcador especial: Piracicaba/ESALQ
+    - LocateControl (geolocalização)
+    - LayersControl (gerenciar camadas)
     
     Returns:
-        html.Div: Layout completo com tabs, geolocalização e favoritos
+        html.Div: Layout completo com mapa interativo e funcionalidades
     """
     return create_world_map_layout()
