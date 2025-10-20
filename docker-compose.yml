@@ -29,9 +29,9 @@ services:
     profiles:
       - production
 
-  # PostgreSQL com PostGIS para dados geoespaciais
+  # PostgreSQL para dados
   postgres:
-    image: postgis/postgis:15-3.4-alpine
+    image: postgres:15-alpine
     container_name: evaonline-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-evaonline}

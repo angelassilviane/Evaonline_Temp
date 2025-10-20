@@ -1,10 +1,156 @@
+# =============================================================================
+# PROMETHEUS CONFIGURATION - EVAonline Production
+# =============================================================================
+
 global:
   scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: "production"
+    cluster: "evaonline"
 
+# Rule files for alerting
+rule_files:
+  - "alerts/*.yml"
+  - "recording_rules/*.yml"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Scrape configurations
 scrape_configs:
-  - job_name: "evaonline_api"
+  # Prometheus itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+    scrape_interval: 30s
+    metrics_path: /metrics
+    honor_labels: true
+
+  # EVAonline API
+  - job_name: "evaonline-api"
     static_configs:
       - targets: ["api:8000"]
-  - job_name: "evaonline_dash"
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: api:8000
+
+  # Celery Workers
+  - job_name: "evaonline-celery"
     static_configs:
-      - targets: ["api:8000"]
+      - targets: ["celery-worker:8001"]
+    scrape_interval: 30s
+    scrape_timeout: 15s
+    metrics_path: /metrics
+    honor_labels: true
+
+  # Redis
+  - job_name: "evaonline-redis"
+    static_configs:
+      - targets: ["redis:6379"]
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    params:
+      format: [prometheus]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: redis-exporter:9121
+
+  # PostgreSQL
+  - job_name: "evaonline-postgres"
+    static_configs:
+      - targets: ["postgres:5432"]
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    params:
+      format: [prometheus]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: postgres-exporter:9187
+
+  # Node Exporter (system metrics)
+  - job_name: "evaonline-node"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # cAdvisor (container metrics)
+  - job_name: "evaonline-cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+
+  # Blackbox Exporter (uptime monitoring)
+  - job_name: "evaonline-blackbox"
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://api:8000/health
+          - http://api:8000/api/v1/health
+          - http://grafana:3000
+          - http://prometheus:9090
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus
+    retention:
+      time: 30d
+      size: 50GB
+    wal_compression: true
+    stripe_size: 16384
+
+# Query logging
+query_log:
+  file: /prometheus/query.log
+# Remote write configuration (optional)
+# remote_write:
+#   - url: https://prometheus-cloud.example.com/api/v1/write
+#     basic_auth:
+#       username: your-username
+#       password: your-password
+#     queue_config:
+#       max_samples_per_send: 1000
+#       max_shards: 200
+#       capacity: 10000
+
+# Remote read configuration (optional)
+# remote_read:
+#   - url: https://prometheus-cloud.example.com/api/v1/read
+#     basic_auth:
+#       username: your-username
+#       password: your-password

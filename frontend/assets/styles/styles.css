@@ -597,3 +597,52 @@ a:not(.nav-link-custom):hover {
     width: 100% !important;
     height: 100% !important;
 }
+
+/* ============================================
+   CORREÇÕES PARA ELIMINAR ESPAÇO CINZA NO MAPA
+   ============================================ */
+
+/* 🔧 FIX: Container principal sem padding */
+.dash-app-container {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* 🔧 FIX: Container do Dash sem margens */
+._dash-app-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+}
+
+/* 🔧 FIX: Container do Bootstrap sem padding */
+.container-fluid {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: 100% !important;
+}
+
+/* 🔧 FIX: Card do mapa sem margens internas */
+.map-card-container {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* 🔧 FIX: Card body sem padding */
+.card-body.p-3 {
+    padding: 0 !important;
+}
+
+/* 🔧 FIX: Mapa ocupando 100% da largura */
+#map {
+    width: 100% !important;
+    border-radius: 0 !important;
+}
+
+/* 🔧 FIX: Header acima do mapa com margem reduzida */
+.mb-3.shadow-sm {
+    margin-bottom: 0.5rem !important;
+    border-radius: 0 !important;
+}

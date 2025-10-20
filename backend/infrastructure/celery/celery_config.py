@@ -12,7 +12,7 @@ from redis import Redis
 
 from backend.api.middleware.prometheus_metrics import (CELERY_TASK_DURATION,
                                                        CELERY_TASKS_TOTAL)
-from config.settings.app_settings import get_settings
+from config.settings import get_settings
 
 # Carregar configurações
 settings = get_settings()

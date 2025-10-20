@@ -5,7 +5,7 @@ from loguru import logger
 from redis.asyncio import Redis
 
 from backend.main import CELERY_TASK_DURATION, CELERY_TASKS_TOTAL
-from config.settings.app_settings import get_settings
+from config.settings import get_settings
 
 # Fallback para métricas locais se houver problema de importação
 try:

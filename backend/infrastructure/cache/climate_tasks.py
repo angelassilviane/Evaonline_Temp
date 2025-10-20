@@ -190,7 +190,7 @@ def cleanup_old_cache():
     try:
         from redis.asyncio import Redis
 
-        from config.settings.app_settings import get_settings
+        from config.settings import get_settings
 
         settings = get_settings()
 
@@ -250,7 +250,7 @@ def generate_cache_stats():
     try:
         from redis.asyncio import Redis
 
-        from config.settings.app_settings import get_settings
+        from config.settings import get_settings
 
         settings = get_settings()
         loop = asyncio.get_event_loop()

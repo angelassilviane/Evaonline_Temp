@@ -26,7 +26,7 @@ from typing import Any, Optional
 from loguru import logger
 from redis.asyncio import Redis
 
-from config.settings.app_settings import get_settings
+from config.settings import get_settings
 
 settings = get_settings()
 

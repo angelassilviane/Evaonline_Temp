@@ -17,7 +17,7 @@ from backend.api.middleware.prometheus_metrics import (
 )
 from backend.api.routes import api_router
 from backend.api.websocket.websocket_service import router as websocket_router
-from config.settings.app_settings import get_settings
+from config.settings import get_settings
 from frontend.app import create_dash_app
 
 # Configuração do logger

@@ -51,3 +51,23 @@ def get_db_context():
         yield db
     finally:
         db.close()
+
+
+def get_db():
+    """
+    FastAPI dependency para obter sessão de banco de dados.
+    Garante que a sessão seja fechada após o uso.
+    
+    Yields:
+        Session: Uma sessão de banco de dados
+    
+    Exemplo:
+        @app.get("/")
+        def read_root(db: Session = Depends(get_db)):
+            return db.query(...).all()
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
