@@ -25,6 +25,7 @@ from loguru import logger
 from backend.api.services.met_norway_client import METNorwayClient
 from backend.api.services.nasa_power_client import NASAPowerClient
 from backend.api.services.nws_client import NWSClient
+from backend.api.services.openmeteo_client import OpenMeteoArchiveClient, OpenMeteoForecastClient
 from backend.infrastructure.cache.climate_cache import ClimateCacheService
 
 
@@ -161,6 +162,78 @@ class ClimateClientFactory:
         cache = cls.get_cache_service()
         client = NWSClient(cache=cache)
         logger.debug("🇺🇸 NWSClient criado com cache injetado")
+        return client
+    
+    @classmethod
+    def create_openmeteo_archive(cls) -> OpenMeteoArchiveClient:
+        """
+        Cria cliente Open-Meteo Archive (dados históricos).
+        
+        Features:
+        - Cobertura: Global (qualquer coordenada)
+        - Dados diários desde 1950
+        - Domínio público (CC0 - sem restrições)
+        - Cache local automático (requests_cache)
+        - Delay: nenhum (já arquivados)
+        - 13 variáveis para cálculo de ETo FAO-56
+        
+        Variáveis incluem:
+        - Temperatura (máx/mín/média)
+        - Precipitação
+        - Velocidade do vento (máx/média)
+        - Radiação solar
+        - Umidade relativa (máx/média/mín)
+        - Duração do dia/sol
+        - ET0 FAO-56 pré-calculado
+        
+        Returns:
+            OpenMeteoArchiveClient: Cliente configurado e pronto para uso
+            
+        Exemplo:
+            client = ClimateClientFactory.create_openmeteo_archive()
+            data = client.get_daily_data(
+                lat=-15.7939,
+                lon=-47.8828,
+                start_date=datetime(2024, 1, 1),
+                end_date=datetime(2024, 12, 31)
+            )
+        """
+        client = OpenMeteoArchiveClient(cache_dir=".cache/openmeteo")
+        logger.debug("📦 OpenMeteoArchiveClient criado (dados históricos desde 1950)")
+        return client
+    
+    @classmethod
+    def create_openmeteo_forecast(cls) -> OpenMeteoForecastClient:
+        """
+        Cria cliente Open-Meteo Forecast (previsão).
+        
+        Features:
+        - Cobertura: Global (qualquer coordenada)
+        - Previsão até 16 dias
+        - Domínio público (CC0 - sem restrições)
+        - Cache local automático (requests_cache)
+        - TTL curto: 6 horas (previsão muda frequentemente)
+        - Real-time (atualizado a cada hora)
+        - 13 variáveis para cálculo de ETo FAO-56
+        
+        Mesmas variáveis do Archive, incluindo:
+        - ET0 FAO-56 pré-calculado
+        - Radiação solar prevista
+        - Umidade relativa prevista
+        
+        Returns:
+            OpenMeteoForecastClient: Cliente configurado e pronto para uso
+            
+        Exemplo:
+            client = ClimateClientFactory.create_openmeteo_forecast()
+            data = client.get_daily_forecast(
+                lat=-15.7939,
+                lon=-47.8828,
+                days=10
+            )
+        """
+        client = OpenMeteoForecastClient(cache_dir=".cache/openmeteo")
+        logger.debug("🔮 OpenMeteoForecastClient criado (previsão até 16 dias)")
         return client
     
     @classmethod
