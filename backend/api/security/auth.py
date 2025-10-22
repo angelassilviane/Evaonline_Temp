@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import jwt
 import redis
 from fastapi import Depends, HTTPException
-from fastapi.security import HTTPAuthCredentials, HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend.database.models import AdminUser
 
@@ -51,7 +51,7 @@ class AdminAuthManager:
     @classmethod
     def get_current_admin(
         cls,
-        credentials: HTTPAuthCredentials = Depends(security)
+        credentials: HTTPAuthorizationCredentials = Depends(security)
     ) -> dict:
         """Dependency para proteger rotas"""
         token = credentials.credentials

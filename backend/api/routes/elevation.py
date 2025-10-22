@@ -4,8 +4,10 @@ from sqlalchemy.orm import Session
 
 from backend.core.elevation.elevation_service import ElevationService
 from backend.database.connection import get_db
+from backend.database.redis_pool import get_redis_client
 
 router = APIRouter(prefix="/api/v1/elevation", tags=["elevation"])
+
 
 @router.get("/nearest")
 async def find_nearest_elevation(
@@ -16,9 +18,9 @@ async def find_nearest_elevation(
 ):
     """
     Encontra cidade mais próxima com elevação.
-    
+
     Query: GET /api/v1/elevation/nearest?lat=-15.7801&lon=-47.9292&max_distance_km=5
-    
+
     Response:
     {
         "city": "Brasília",
@@ -29,16 +31,18 @@ async def find_nearest_elevation(
         "source": "database",
         "distance_km": 0.0
     }
-    
+
     Performance:
     - Primeira vez: ~5-10ms (DB) vs 200ms (API)
     - Próximas vezes: <1ms (Redis)
     """
-    redis_client = redis.from_url("redis://redis:6379")
+    # ✅ FIX: Use centralized Redis pool instead of hardcoded URL
+    redis_client = get_redis_client()
     service = ElevationService(redis_client, db)
-    
+
     return await service.get_nearest_city(
-        lat, 
-        lon, 
+        lat,
+        lon,
         max_distance_km
     )
+
