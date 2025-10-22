@@ -156,7 +156,7 @@ def _create_brand_section(settings, texts: Dict, enable_analytics: bool) -> html
             # Logo (visível apenas em desktop)
             dbc.Col(
                 html.Img(
-                    src="/assets/images/logo_esalq_2.png",
+                    src="assets/images/logo_esalq_2.png",
                     height="45px",
                     width="auto",
                     className="d-none d-md-block",

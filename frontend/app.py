@@ -136,10 +136,15 @@ def create_dash_app() -> dash.Dash:
         render_navbar(settings),
         dcc.Location(id='url', refresh=False),
         
-        # Stores globais para compartilhar dados entre páginas
-        dcc.Store(id='selected-location', data=None),
-        dcc.Store(id='geolocation-error', data=None),
-        dcc.Store(id='app-session-id', data=None),  # Para tracking de sessão
+    # Stores globais para compartilhar dados entre páginas
+    dcc.Store(id='selected-location', data=None),
+    dcc.Store(id='geolocation-error', data=None),
+    # Session ID para usuário anônimo (persistência por aba)
+    dcc.Store(id='app-session-id', data=None, storage_type='session'),
+    # Cache store (localStorage) para dados climáticos
+    dcc.Store(id='climate-cache-store', data={}, storage_type='local'),
+    # Favorites store (localStorage) guarda lista de location_ids
+    dcc.Store(id='favorites-store', data=[], storage_type='local'),
         
         html.Div(id='page-content'),
         render_footer()
