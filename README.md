@@ -65,7 +65,10 @@ EVAonline_ElsevierSoftwareX/
 ├── docker-compose.yml    # Multi-service orchestration
 ├── Dockerfile            # Multi-stage container build
 ├── alembic.ini          # Alembic migration configuration
-└── requirements.txt      # Python dependencies (152 packages)
+└── requirements/         # Python dependencies (3-tier structure)
+    ├── base.txt         # Core dependencies (50 packages)
+    ├── production.txt    # Production additions (60 packages)
+    └── development.txt   # Dev-only dependencies (100 packages)
 ```
 
 ## 🚀 Getting Started
@@ -274,7 +277,11 @@ EVAonline integrates multiple real-time weather data sources through RESTful API
 
 1. **Install dependencies:**
    ```bash
-   pip install -r requirements.txt
+   # For production environment
+   pip install -r requirements/production.txt
+   
+   # OR for development with testing/linting tools
+   pip install -r requirements/development.txt
    ```
 
 2. **Run services locally:**

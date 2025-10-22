@@ -245,6 +245,11 @@ yarn-error.log*
 *.old
 *~
 
+# Legacy requirements files (use requirements/ directory instead)
+requirements.txt
+requirements.txt.bak
+requirements.txt.old
+
 # ===========================================
 # Local Configurations
 # ===========================================

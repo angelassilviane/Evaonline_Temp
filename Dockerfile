@@ -33,12 +33,17 @@ RUN apt-get update && \
 WORKDIR /build
 
 # Copiar apenas requirements para cache otimizado (Layer Caching - menos changing)
-COPY requirements.txt .
+# Nova estrutura 3-tier: production.txt inclui base.txt
+# - base.txt: 50 pacotes essenciais (~400MB)
+# - production.txt: base + 10 production-only (~500MB)
+# - development.txt: production + 40 dev-only (não usado em production)
+COPY requirements/production.txt .
+COPY requirements/base.txt .
 
 # Criar wheels das dependências (mais rápido para instalar depois)
 # Combine múltiplos RUN em um para reduzir layers
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip wheel --no-cache-dir --wheel-dir /build/wheels -r requirements.txt gunicorn uvicorn[standard] prometheus_client
+    pip wheel --no-cache-dir --wheel-dir /build/wheels -r production.txt gunicorn uvicorn[standard] prometheus_client
 
 # ===========================================
 # Stage 2: Runtime (Slim verified base image)
@@ -169,7 +174,7 @@ CMD ["pytest", "-v", "--cov=backend", "--cov-report=term-missing"]
 # ✅ Slim Image: python:3.10-slim é verificado, sem shell utils desnecessários
 #
 # ✅ Layer Caching: Ordem de COPY (menos changing → mais changing)
-#    - requirements.txt (muda raramente)
+#    - requirements/production.txt e base.txt (muda raramente)
 #    - entrypoint.sh (muda raramente)
 #    - Diretórios /app (muda frequentemente)
 #
