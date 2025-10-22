@@ -58,7 +58,7 @@ def get_elevation(lat: float, lon: float, max_retries: int = 3) -> Optional[floa
     for attempt in range(max_retries):
         try:
             # Usar versão SYNC (compatível com Dash)
-            from backend.api.services.elevation_api import get_openmeteo_elevation
+            from backend.infrastructure.clients.elevation_api import get_openmeteo_elevation
 
             # Retorna: Tuple[float, List[str]] = (elevation, warnings)
             elevation, warnings = get_openmeteo_elevation(lat=lat, long=lon)

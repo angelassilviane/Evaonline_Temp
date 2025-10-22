@@ -39,8 +39,8 @@ from sqlalchemy.exc import OperationalError
 backend_path = Path(__file__).parent.parent.parent / "backend"
 sys.path.insert(0, str(backend_path))
 
-from backend.api.services.elevation_api import get_openmeteo_elevation
 from backend.database.connection import DATABASE_URL, engine, get_db_context
+from backend.infrastructure.clients.elevation_api import get_openmeteo_elevation
 
 # ============================================================================
 # FIXTURES

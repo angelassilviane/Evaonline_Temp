@@ -2,7 +2,7 @@ import redis
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from backend.api.services.visitor_counter_service import VisitorCounterService
+from backend.core.analytics.visitor_counter_service import VisitorCounterService
 from backend.database.connection import get_db
 
 router = APIRouter(prefix="/stats", tags=["stats"])

@@ -10,8 +10,8 @@ from typing import Any, Dict, List, Optional, Union
 from fastapi import APIRouter, HTTPException
 from loguru import logger
 
-from backend.api.services.elevation_api import get_openmeteo_elevation
 from backend.core.eto_calculation.eto_calculation import calculate_eto_pipeline
+from backend.infrastructure.clients.elevation_api import get_openmeteo_elevation
 from utils.logging import configure_logging
 
 configure_logging()

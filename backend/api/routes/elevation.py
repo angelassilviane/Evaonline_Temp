@@ -2,7 +2,7 @@ import redis
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from backend.api.services.elevation_service import ElevationService
+from backend.core.elevation.elevation_service import ElevationService
 from backend.database.connection import get_db
 
 router = APIRouter(prefix="/api/v1/elevation", tags=["elevation"])
