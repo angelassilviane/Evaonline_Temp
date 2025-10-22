@@ -1,0 +1,95 @@
+# ===========================================
+# REQUIREMENTS/DEVELOPMENT.TXT - EVAonline
+# ===========================================
+# Pacotes ADICIONAIS apenas para DESENVOLVIMENTO
+# Inclui production.txt + ferramentas de dev
+#
+# Instalar com: pip install -r requirements/development.txt
+#
+# Total: ~60 + 40 = 100 pacotes
+# Tamanho estimado: ~700MB
+
+# Importar todos os pacotes de produção (que inclui base)
+-r production.txt
+
+# ===========================================
+# Testing Framework & Extensions
+# ===========================================
+pytest>=7.4.0,<8.0.0
+pytest-cov>=4.1.0,<5.0.0
+pytest-asyncio>=0.21.0,<1.0.0
+pytest-mock>=3.11.0,<4.0.0
+pytest-timeout>=2.1.0,<3.0.0
+pytest-xdist>=3.3.0,<4.0.0
+pytest-benchmark>=4.0.0,<5.0.0
+pytest-html>=4.1.0,<5.0.0
+pytest-sugar>=0.9.0,<1.0.0
+faker>=22.0.0,<24.0.0
+
+# ===========================================
+# Code Quality & Formatters
+# ===========================================
+black>=24.1.0,<25.0.0
+isort>=5.13.0,<6.0.0
+autopep8>=2.0.0,<3.0.0
+
+# ===========================================
+# Linters
+# ===========================================
+flake8>=7.0.0,<8.0.0
+flake8-bugbear>=24.0.0,<25.0.0
+flake8-comprehensions>=3.14.0,<4.0.0
+flake8-simplify>=0.21.0,<1.0.0
+pylint>=3.0.0,<4.0.0
+ruff>=0.1.0,<1.0.0
+
+# ===========================================
+# Type Checking
+# ===========================================
+types-requests>=2.31.0,<3.0.0
+types-redis>=4.6.0,<5.0.0
+types-pytz>=2024.0.0,<2026.0.0
+types-python-dateutil>=2.8.0,<3.0.0
+types-Flask>=1.1.0,<2.0.0
+types-PyYAML>=6.0.0,<7.0.0
+
+# ===========================================
+# Pre-commit & Hooks
+# ===========================================
+pre-commit>=3.6.0,<4.0.0
+
+# ===========================================
+# Documentation
+# ===========================================
+mkdocs>=1.5.0,<2.0.0
+mkdocs-material>=9.5.0,<10.0.0
+mkdocstrings[python]>=0.24.0,<1.0.0
+
+# ===========================================
+# Debugging & Profiling
+# ===========================================
+ipdb>=0.13.0,<1.0.0
+ipython>=8.18.0,<9.0.0
+py-spy>=0.3.0,<1.0.0
+memory-profiler>=0.61.0,<1.0.0
+line-profiler>=4.1.0,<5.0.0
+
+# ===========================================
+# Database Tools
+# ===========================================
+pgcli>=4.0.0,<5.0.0
+
+# ===========================================
+# HTTP Client (CLI)
+# ===========================================
+httpie>=3.2.0,<4.0.0
+
+# ===========================================
+# Additional Development Tools
+# ===========================================
+detect-secrets>=1.4.0,<2.0.0
+rope>=1.11.0,<2.0.0
+dataclass-wizard>=0.22.0,<0.32.0
+sqlalchemy-utils>=0.41.0,<1.0.0
+jsbeautifier>=1.15.0,<2.0.0
+scikit-learn>=1.3.0,<2.0.0

@@ -1,0 +1,39 @@
+# ===========================================
+# REQUIREMENTS/PRODUCTION.TXT - EVAonline
+# ===========================================
+# Pacotes ADICIONAIS apenas para PRODUÇÃO
+# Inclui base.txt + pacotes de produção
+#
+# Instalar com: pip install -r requirements/production.txt
+#
+# Total: ~50 + 10 = 60 pacotes
+# Tamanho estimado: ~500MB
+
+# Importar todos os pacotes base
+-r base.txt
+
+# ===========================================
+# Production-Only Packages
+# ===========================================
+
+# Type Checking (opcional em prod, mas bom para CI/CD)
+mypy>=1.8.0,<2.0.0
+
+# Additional monitoring
+prometheus-flask-exporter>=0.23.0,<1.0.0
+Flask-Caching>=2.1.0,<3.0.0
+
+# Security scanning
+bandit>=1.7.0,<2.0.0
+safety>=3.0.0,<4.0.0
+
+# Email validation
+email-validator>=2.0.0,<3.0.0
+
+# Platform utilities
+platformdirs>=3.0.0,<5.0.0
+importlib-metadata>=6.0.0,<8.0.0
+watchdog>=3.0.0,<5.0.0
+
+# Timezone handling
+timezonefinderL==4.0.2
