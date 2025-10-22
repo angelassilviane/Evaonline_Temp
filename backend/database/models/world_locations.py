@@ -4,6 +4,7 @@ Modelo de banco de dados para localizações mundiais pré-carregadas.
 Este modelo armazena cidades do mundo com elevação para exibição
 de marcadores no mapa mundial com cálculo diário de ETo.
 """
+from geoalchemy2 import Geometry
 from sqlalchemy import Column, DateTime, Float, Index, Integer, String
 from sqlalchemy.sql import func
 
@@ -43,6 +44,7 @@ class WorldLocation(Base):
     lat = Column(Float, nullable=False)
     lon = Column(Float, nullable=False)
     elevation_m = Column(Float, nullable=False)
+    geometry = Column(Geometry('POINT', srid=4326), nullable=False, comment='PostGIS point (lon, lat) para queries espaciais')
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
