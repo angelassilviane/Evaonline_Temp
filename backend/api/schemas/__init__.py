@@ -9,7 +9,6 @@ from .climate_schemas import (
     ClimateSourceResponse,
     ClimateValidationRequest,
 )
-from .elevation_schemas import ElevationRequest, ElevationResponse
 from .location_schemas import LocationDetailResponse, LocationResponse, NearestLocationResponse
 
 __all__ = [
@@ -18,9 +17,6 @@ __all__ = [
     "ClimateValidationRequest",
     "ClimateDownloadRequest",
     "ClimateDataResponse",
-    # Elevation schemas
-    "ElevationRequest",
-    "ElevationResponse",
     # Location schemas
     "LocationResponse",
     "LocationDetailResponse",

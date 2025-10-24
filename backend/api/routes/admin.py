@@ -7,7 +7,7 @@ from backend.api.security.auth import AdminAuthManager
 from backend.database.connection import get_db
 from backend.database.models import AdminUser
 
-router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
+router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.post("/login")
 async def admin_login(

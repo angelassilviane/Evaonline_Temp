@@ -5,8 +5,10 @@ from functools import lru_cache
 from typing import Dict, Optional
 
 import dash_bootstrap_components as dbc
-from dash import html
+from dash import dcc, html
 from loguru import logger
+
+from frontend.components.language_switcher import create_language_switcher
 
 
 class NavbarManager:
@@ -299,31 +301,8 @@ def _create_nav_items(settings, texts: Dict, current_lang: str, enable_analytics
             className="pe-3"
         ),
         
-        # Seletor de idioma
-        dbc.Col(
-            dbc.Button(
-                html.Span([
-                    html.I(className="fas fa-globe me-2"),
-                    texts["current_language"]
-                ]),
-                id="language-toggle",
-                color="light",
-                outline=True,
-                size="sm",
-                className="language-toggle-btn",
-                style={
-                    "color": "white",
-                    "borderColor": "rgba(255,255,255,0.5)",
-                    "backgroundColor": "transparent",
-                    "transition": "all 0.2s ease",
-                    "fontWeight": "500",
-                    "fontSize": "14px"
-                },
-                **{"data-current-lang": current_lang}
-            ),
-            width="auto",
-            className="d-flex align-items-center"
-        )
+        # Seletor de idioma (language switcher dropdown)
+        create_language_switcher()
         
     ], className="g-2 align-items-center", justify="end")
 

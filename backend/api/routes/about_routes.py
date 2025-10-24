@@ -5,11 +5,12 @@ ao usuário.
 """
 
 from typing import Dict, List, Union
+
 from fastapi import APIRouter
 
 # Router interno para funções da página About
 about_router = APIRouter(
-    prefix="/api/internal/about",
+    prefix="/internal/about",
     tags=["About Internal"]
 )
 

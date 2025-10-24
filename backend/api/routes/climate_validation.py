@@ -16,7 +16,7 @@ from backend.api.services.climate_fusion import climate_fusion_service
 from backend.api.services.climate_source_manager import ClimateSourceManager
 
 router = APIRouter(
-    prefix="/api/v1/climate",
+    prefix="/climate",
     tags=["Climate Validation"]
 )
 

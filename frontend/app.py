@@ -13,6 +13,7 @@ from loguru import logger
 
 from config.settings import get_settings
 from frontend.callbacks.eto_callbacks import register_eto_callbacks
+from frontend.callbacks.eto_v3_callbacks import register_eto_v3_callbacks
 from frontend.callbacks.map_callbacks import register_map_callbacks
 from frontend.callbacks.navigation_callbacks import register_navigation_callbacks
 from frontend.components.footer import render_footer
@@ -21,6 +22,7 @@ from frontend.pages.about import about_dash
 from frontend.pages.dash_eto import eto_calculator_dash
 from frontend.pages.documentation import documentation_layout
 from frontend.pages.home import home_layout
+from utils.language_manager import register_language_callbacks
 
 # Adicionar o diretório pai ao path para importar módulos
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -136,15 +138,22 @@ def create_dash_app() -> dash.Dash:
         render_navbar(settings),
         dcc.Location(id='url', refresh=False),
         
-    # Stores globais para compartilhar dados entre páginas
-    dcc.Store(id='selected-location', data=None),
-    dcc.Store(id='geolocation-error', data=None),
-    # Session ID para usuário anônimo (persistência por aba)
-    dcc.Store(id='app-session-id', data=None, storage_type='session'),
-    # Cache store (localStorage) para dados climáticos
-    dcc.Store(id='climate-cache-store', data={}, storage_type='local'),
-    # Favorites store (localStorage) guarda lista de location_ids
-    dcc.Store(id='favorites-store', data=[], storage_type='local'),
+        # Stores globais para compartilhar dados entre páginas
+        dcc.Store(id='selected-location', data=None),
+        dcc.Store(id='geolocation-error', data=None),
+        # Session ID para usuário anônimo (persistência por aba)
+        dcc.Store(id='app-session-id', data=None, storage_type='session'),
+        # Cache store (localStorage) para dados climáticos
+        dcc.Store(id='climate-cache-store', data={}, storage_type='local'),
+        # Favorites store (localStorage) guarda lista de location_ids
+        dcc.Store(id='favorites-store', data=[], storage_type='local'),
+        # Estado do cálculo ETo (task_id, status, progress, resultados)
+        dcc.Store(id='calculation-state', data=None),
+        # Language store (localStorage) para persistir idioma selecionado
+        dcc.Store(id='language-store', data='pt', storage_type='local'),
+        
+        # Intervalo para atualizar WebSocket (2 segundos)
+        dcc.Interval(id='websocket-interval', interval=2000, n_intervals=0),
         
         html.Div(id='page-content'),
         render_footer()
@@ -155,6 +164,8 @@ def create_dash_app() -> dash.Dash:
         register_navigation_callbacks(app, render_page_content)
         register_map_callbacks(app)
         register_eto_callbacks(app)
+        register_eto_v3_callbacks(app)  # V3 smart callbacks
+        register_language_callbacks(app)  # Callbacks de idioma/tradução
         logger.info("✅ Todos os callbacks registrados com sucesso")
     except Exception as e:
         logger.error(f"❌ Erro ao registrar callbacks: {e}")

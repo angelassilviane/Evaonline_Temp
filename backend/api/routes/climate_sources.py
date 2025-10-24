@@ -13,7 +13,7 @@ from loguru import logger
 from backend.api.services.climate_source_manager import ClimateSourceManager
 
 router = APIRouter(
-    prefix="/api/v1/climate/sources",
+    prefix="/climate/sources",
     tags=["Climate Data Sources"]
 )
 

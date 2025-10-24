@@ -21,8 +21,8 @@ def eto_calculator_dash(lang: str = "pt") -> dbc.Container:
     """
     # Configurações de período com validação
     today = datetime.now()
-    min_date = today - timedelta(days=365)  # 1 ano atrás
-    max_date = today + timedelta(days=1)    # Amanhã
+    min_date = today - timedelta(days=85*365)  # 85+ anos (Open-Meteo Archive desde 1940)
+    max_date = today + timedelta(days=16)      # +16 dias (Forecast horizon)
     
     # Textos baseados no idioma
     texts = _get_eto_texts(lang)
@@ -106,6 +106,9 @@ def eto_calculator_dash(lang: str = "pt") -> dbc.Container:
                         # Validação de período
                         html.Div(id='period-validation', className="mt-2"),
                         
+                        # Badge mostrando qual API será usado
+                        html.Div(id='api-strategy-badge', className="mt-2"),
+                        
                         # Botão de cálculo
                         dbc.Button(
                             texts["calculate_button"],
@@ -134,8 +137,8 @@ def eto_calculator_dash(lang: str = "pt") -> dbc.Container:
         dcc.Store(id='favorites-store', data=[], storage_type='local'),
         dcc.Store(id='selected-location-store', storage_type='session'),
         dcc.Store(id='available-sources-store', storage_type='session'),
-        dcc.Store(id='selected-sources-store', storage_type='session'),
-        dcc.Store(id='calculation-state', data={'status': 'idle'})  # Estado do cálculo
+        dcc.Store(id='selected-sources-store', storage_type='session')
+        # Nota: calculation-state já está em app.py (global)
     ], fluid=True, className="py-3")
 
 
@@ -144,25 +147,33 @@ def _get_eto_texts(lang: str) -> Dict[str, Any]:
     return {
         "pt": {
             "title": "Calculadora de ETo",
-            "subtitle": "Cálculo da evapotranspiração de referência com múltiplas fontes de dados climáticos",
+            "subtitle": "Cálculo da evapotranspiração de referência com Open-Meteo (Archive + Forecast)",
             "location_title": "Localização Selecionada",
             "period_title": "Selecione o Período",
             "period_info_label": "Período permitido: ",
-            "period_info_text": "Mínimo 7 dias, máximo 15 dias. Dados disponíveis de {min_date} até {max_date}.",
+            "period_info_text": "Mínimo 7 dias, máximo 30 dias. Histórico: desde 1940 até hoje. Previsão: +16 dias.",
             "start_date_label": "Data Inicial:",
             "end_date_label": "Data Final:",
-            "calculate_button": "📊 Calcular ETo"
+            "calculate_button": "📊 Calcular ETo",
+            "api_info": "ℹ️ API Selection",
+            "api_archive": "📚 Archive (1940+)",
+            "api_forecast": "🔮 Forecast (Recent+16d)",
+            "api_hybrid": "🔀 Hybrid (Archive + Forecast)"
         },
         "en": {
             "title": "ETo Calculator",
-            "subtitle": "Reference evapotranspiration calculation with multiple climate data sources",
+            "subtitle": "Reference evapotranspiration calculation with Open-Meteo (Archive + Forecast)",
             "location_title": "Selected Location",
             "period_title": "Select Period",
             "period_info_label": "Allowed period: ",
-            "period_info_text": "Minimum 7 days, maximum 15 days. Data available from {min_date} to {max_date}.",
+            "period_info_text": "Minimum 7 days, maximum 30 days. History: since 1940 until today. Forecast: +16 days.",
             "start_date_label": "Start Date:",
             "end_date_label": "End Date:",
-            "calculate_button": "📊 Calculate ETo"
+            "calculate_button": "📊 Calculate ETo",
+            "api_info": "ℹ️ API Selection",
+            "api_archive": "📚 Archive (1940+)",
+            "api_forecast": "🔮 Forecast (Recent+16d)",
+            "api_hybrid": "🔀 Hybrid (Archive + Forecast)"
         }
     }.get(lang, "pt")
 

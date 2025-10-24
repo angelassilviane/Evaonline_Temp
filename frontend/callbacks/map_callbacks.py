@@ -15,7 +15,6 @@ from pytz import timezone
 from timezonefinderL import TimezoneFinder
 
 from frontend.utils.coordinates import format_coordinates
-from frontend.utils.elevation import get_elevation
 
 
 class MapCallbackManager:
@@ -135,7 +134,6 @@ def register_map_callbacks(app: dash.Dash):
     ) -> List[Dict]:
         """Cria marker de geolocalização."""
         lat, lon = position.get('lat', 0), position.get('lon', 0)
-        elevation = get_elevation(lat, lon)
         
         lat_fmt, lng_fmt = format_coordinates(lat, lon)
         popup_content = [
@@ -143,7 +141,7 @@ def register_map_callbacks(app: dash.Dash):
                     style={'marginBottom': '8px', 'textAlign': 'center'}),
             html.Div([html.B("Latitude: "), lat_fmt]),
             html.Div([html.B("Longitude: "), lng_fmt]),
-            html.Div([html.B("Altitude: "), f"{elevation:.1f} m" if elevation else "N/A"])
+            html.Div([html.B("Altitude: "), "N/A (obtida no cálculo do ETo)"])
         ]
         
         new_marker = {
@@ -165,8 +163,6 @@ def register_map_callbacks(app: dash.Dash):
             logger.error(f"Erro ao extrair coordenadas do click: {e}")
             return dash.no_update
         
-        elevation = get_elevation(lat, lng)
-        
         # Buscar fuso horário e hora local
         tf = TimezoneFinder()
         tz_name = tf.timezone_at(lng=lng, lat=lat)
@@ -178,7 +174,7 @@ def register_map_callbacks(app: dash.Dash):
                            'textAlign': 'center'}),
             html.Div([html.B("Latitude: "), lat_fmt], style={'fontSize': '13px'}),
             html.Div([html.B("Longitude: "), lng_fmt], style={'fontSize': '13px'}),
-            html.Div([html.B("Altitude: "), f"{elevation:.1f} m" if elevation else "N/A"], 
+            html.Div([html.B("Altitude: "), "N/A (obtida no cálculo do ETo)"], 
                     style={'fontSize': '13px'})
         ]
         
@@ -207,7 +203,6 @@ def register_map_callbacks(app: dash.Dash):
             'type': 'click',
             'lat': lat,
             'lng': lng,
-            'elevation': elevation,
             'timestamp': datetime.now().isoformat()
         }
         
@@ -260,7 +255,6 @@ def register_map_callbacks(app: dash.Dash):
     def _create_geo_alert(position: Dict) -> dbc.Alert:
         """Cria alerta para geolocalização."""
         lat, lon = position.get('lat', 0), position.get('lon', 0)
-        elevation = get_elevation(lat, lon)
         lat_fmt, lng_fmt = format_coordinates(lat, lon)
         
         return dbc.Alert([
@@ -268,7 +262,7 @@ def register_map_callbacks(app: dash.Dash):
             html.Strong("Sua localização atual: ", style={"color": "#055160"}),
             html.B("Latitude: "), lat_fmt, " | ",
             html.B("Longitude: "), lng_fmt, " | ",
-            html.B("Altitude: "), f"{elevation:.1f} m" if elevation else "N/A"
+            html.B("Altitude: "), "N/A (obtida no cálculo do ETo)"
         ], color="info", className="py-2 px-3 mb-0")
 
     def _create_error_alert(error: Dict) -> dbc.Alert:
@@ -285,14 +279,13 @@ def register_map_callbacks(app: dash.Dash):
         """Cria alerta para clique no mapa."""
         lat = click_data['latlng']['lat']
         lng = click_data['latlng']['lng']
-        elevation = get_elevation(lat, lng)
         lat_fmt, lng_fmt = format_coordinates(lat, lng)
         
         return dbc.Alert([
             html.I(className="fas fa-map-pin me-2"),
             html.B("Latitude: "), lat_fmt, " | ",
             html.B("Longitude: "), lng_fmt, " | ",
-            html.B("Altitude: "), f"{elevation:.1f} m" if elevation else "N/A"
+            html.B("Altitude: "), "N/A (obtida no cálculo do ETo)"
         ], color="info", className="py-2 px-3 mb-0")
 
     @app.callback(

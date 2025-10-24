@@ -1,6 +1,7 @@
-import os
 import json
+import os
 from typing import Dict
+
 from loguru import logger
 
 # Cache em memória para armazenar as traduções já carregadas
@@ -12,8 +13,8 @@ def get_translations(lang: str = "pt") -> Dict[str, str]:
     Carrega as traduções de um arquivo JSON correspondente ao idioma,
     com cache em memória para otimizar o desempenho.
 
-    Esta função espera que exista uma pasta 'translations' na raiz do projeto
-    contendo os arquivos, como 'translations/pt.json' e 'translations/en.json'.
+    Esta função espera que exista uma pasta 'config/translations' na raiz do projeto
+    contendo os arquivos, como 'config/translations/pt.json' e 'config/translations/en.json'.
 
     Args:
         lang (str): O código do idioma (ex: 'pt', 'en').
@@ -27,8 +28,8 @@ def get_translations(lang: str = "pt") -> Dict[str, str]:
 
     # 2. Constrói o caminho para o arquivo JSON de forma dinâmica
     #    Isso funciona bem localmente e dentro do Docker.
-    #    Certifique-se de que a pasta 'translations' está na raiz do seu projeto.
-    file_path = os.path.join("translations", f"{lang}.json")
+    #    Certifique-se de que a pasta 'config/translations' está na raiz do seu projeto.
+    file_path = os.path.join("config", "translations", f"{lang}.json")
     
     try:
         # 3. Abre e carrega o arquivo JSON

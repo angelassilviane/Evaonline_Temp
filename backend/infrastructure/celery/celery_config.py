@@ -10,8 +10,7 @@ from celery.schedules import crontab
 from kombu import Queue
 from redis import Redis
 
-from backend.api.middleware.prometheus_metrics import (CELERY_TASK_DURATION,
-                                                       CELERY_TASKS_TOTAL)
+from backend.api.middleware.prometheus_metrics import CELERY_TASK_DURATION, CELERY_TASKS_TOTAL
 from config.settings import get_settings
 
 # Carregar configurações
@@ -83,9 +82,8 @@ celery_app.conf.update(
     task_routes={
         "backend.core.eto_calculation.*": {"queue": "eto_processing"},
         "backend.core.data_processing.data_download.*": {"queue": "data_download"},
-        "backend.core.data_processing.data_fusion.*": {"queue": "data_processing"},
         "backend.api.services.openmeteo.*": {"queue": "elevation"},
-        # REMOVIDO: backend.utils.data_utils.* (não contém tasks Celery)
+        # REMOVIDO: backend.core.data_processing.data_fusion.* (arquivo deletado em FASE 1-2)
     },
     task_queues=(
         Queue("general"),
@@ -131,6 +129,5 @@ celery_app.autodiscover_tasks([
     "backend.infrastructure.celery.tasks",
     "backend.core.eto_calculation",
     "backend.core.data_processing.data_download",
-    "backend.core.data_processing.data_fusion",
     "backend.api.services.openmeteo",
 ])

@@ -14,7 +14,7 @@ from backend.api.services.climate_source_manager import ClimateSourceManager
 from backend.api.services.license_checker import license_checker_service
 
 router = APIRouter(
-    prefix="/api/v1/climate",
+    prefix="/climate",
     tags=["Climate Download"]
 )
 

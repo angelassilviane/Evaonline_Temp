@@ -5,16 +5,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from backend.api.middleware.prometheus_metrics import (
-    API_ACTIVE_REQUESTS,
-    API_REQUEST_DURATION,
-    API_REQUESTS,
-    CACHE_HITS,
-    CACHE_MISSES,
-    CELERY_TASK_DURATION,
-    CELERY_TASKS_TOTAL,
-    POPULAR_DATA_ACCESSES,
-)
 from backend.api.routes import api_router
 from backend.api.websocket.websocket_service import router as websocket_router
 from config.settings import get_settings
