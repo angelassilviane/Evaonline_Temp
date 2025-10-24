@@ -50,7 +50,13 @@ class Settings(BaseSettings):
         "about": "/about",
         "documentation": "/documentation"
     }
-    DASH_ASSETS_FOLDER: str = "frontend/assets"
+    # Usar caminho absoluto para assets (importante para Docker)
+    @property
+    def DASH_ASSETS_FOLDER(self) -> str:
+        """Caminho absoluto para pasta de assets do Dash."""
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        assets_path = os.path.join(base_dir, "frontend", "assets")
+        return assets_path
     
     # Performance Dash
     DASH_COMPRESS_ASSETS: bool = True
@@ -146,17 +152,45 @@ class Settings(BaseSettings):
     # =========================================================================
     # CONFIGURAÇÕES EXTERNAS (APIs)
     # =========================================================================
-    # Open-Meteo Elevation API
-    OPEN_METEO_ELEVATION_URL: str = "https://api.open-meteo.com/v1/elevation"
-    OPEN_METEO_TIMEOUT: int = 10
-    OPEN_METEO_MAX_RETRIES: int = 3
+    # Open-Meteo APIs
+    OPENMETEO_FORECAST_URL: str = os.getenv(
+        "OPENMETEO_FORECAST_URL",
+        "https://api.open-meteo.com/v1/forecast"
+    )
+    OPENMETEO_ARCHIVE_URL: str = os.getenv(
+        "OPENMETEO_ARCHIVE_URL",
+        "https://archive-api.open-meteo.com/v1/archive"
+    )
+    OPENMETEO_TIMEOUT: int = int(os.getenv("OPENMETEO_TIMEOUT", "10"))
+    OPENMETEO_MAX_RETRIES: int = int(os.getenv("OPENMETEO_MAX_RETRIES", "3"))
     
     # NASA POWER API
-    NASA_POWER_URL: str = "https://power.larc.nasa.gov/api/temporal/daily/point"
-    NASA_POWER_TIMEOUT: int = 15
+    NASA_POWER_URL: str = os.getenv(
+        "NASA_POWER_URL",
+        "https://power.larc.nasa.gov/api/temporal/daily/point"
+    )
+    NASA_POWER_TIMEOUT: int = int(os.getenv("NASA_POWER_TIMEOUT", "15"))
+    NASA_POWER_MAX_RETRIES: int = int(os.getenv("NASA_POWER_MAX_RETRIES", "3"))
     
-    # Rate Limiting para APIs externas
-    EXTERNAL_API_RATE_LIMIT: int = 100  # requests por hora
+    # Met.no (Norway Meteorological Institute)
+    MET_NORWAY_URL: str = os.getenv(
+        "MET_NORWAY_URL",
+        "https://api.met.no/weatherapi/locationforecast/2.0/complete"
+    )
+    MET_NORWAY_TIMEOUT: int = int(os.getenv("MET_NORWAY_TIMEOUT", "10"))
+    MET_NORWAY_MAX_RETRIES: int = int(os.getenv("MET_NORWAY_MAX_RETRIES", "3"))
+    
+    # NWS (USA National Weather Service)
+    NWS_BASE_URL: str = os.getenv(
+        "NWS_BASE_URL",
+        "https://api.weather.gov"
+    )
+    NWS_TIMEOUT: int = int(os.getenv("NWS_TIMEOUT", "10"))
+    NWS_MAX_RETRIES: int = int(os.getenv("NWS_MAX_RETRIES", "3"))
+    
+    # External APIs General Settings
+    EXTERNAL_API_RATE_LIMIT: int = int(os.getenv("EXTERNAL_API_RATE_LIMIT", "1000"))
+    EXTERNAL_API_REQUEST_TIMEOUT: int = int(os.getenv("EXTERNAL_API_REQUEST_TIMEOUT", "20"))
     
     # =========================================================================
     # CONFIGURAÇÕES MONITORAMENTO

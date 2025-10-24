@@ -29,12 +29,12 @@ async def get_about_info() -> Dict[str, Union[Dict[str, str], List[Dict[str, str
             "name": "EVAonline",
             "version": "1.0.0",
             "description": "Calculadora online de Evapotranspiração",
-            "repository": "https://github.com/angelacunhasoares/EVAonline",
+            "repository": "https://github.com/angelassilviane/Evaonline_Temp",
             "license": "MIT"
         },
         "developers": {
-            "main": "Angela Cunha Soares <angelacunhasoares@gmail.com>",
-            "supervisor": "Prof. Dr. Fábio Ricardo Marin <fabio.marin@usp.br>"
+            "main": "Ângela Cunha Soares <angelassilviane@gmail.com>",
+            "supervisor": "Prof. Drª Patricia Angélica Alves Marques <paamarques@usp.br>"
         },
         "partners": [
             {

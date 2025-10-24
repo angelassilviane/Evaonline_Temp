@@ -8,38 +8,26 @@ services:
   redis:
     image: redis:7-alpine
     container_name: evaonline-redis
-    command: redis-server --requirepass ${REDIS_PASSWORD:-dev-redis-pass-change-me}
+    command: redis-server --requirepass evaonline
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     restart: unless-stopped
     healthcheck:
-      test:
-        [
-          "CMD",
-          "redis-cli",
-          "-a",
-          "${REDIS_PASSWORD:-dev-redis-pass-change-me}",
-          "ping",
-        ]
+      test: ["CMD", "redis-cli", "-a", "evaonline", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     networks:
       - evaonline
 
   postgres:
-    image: postgres:17-alpine
+    image: postgres:15-alpine
     container_name: evaonline-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-evaonline}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev-pass-change-me}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
       POSTGRES_DB: ${POSTGRES_DB:-evaonline}
       TZ: UTC
     volumes:
@@ -53,19 +41,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     networks:
       - evaonline
 
   # ============================================================================
   # TIER 2: APPLICATION LAYER (Nossa Aplicação)
   # ============================================================================
-  # ⚠️ IMPORTANTE: Usar 'image' de imagem já buildada, não 'build'
-  # Isso evita builds paralelos desnecessários
 
   api:
     build:
@@ -76,11 +57,11 @@ services:
     container_name: evaonline-api
     environment:
       - SERVICE=api
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-evaonline}:${POSTGRES_PASSWORD:-dev-pass-change-me}@postgres:5432/${POSTGRES_DB:-evaonline}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-evaonline}:${POSTGRES_PASSWORD:-123456}@postgres:5432/${POSTGRES_DB:-evaonline}
       - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-dev-redis-pass-change-me}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://:dev-redis-pass-change-me@redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://:dev-redis-pass-change-me@redis:6379/0}
+      - REDIS_PASSWORD=evaonline
+      - CELERY_BROKER_URL=redis://:evaonline@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:evaonline@redis:6379/0
       - TZ=UTC
       - API_BASE_URL=http://localhost:8000
       - PYTHONUNBUFFERED=1
@@ -99,29 +80,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     networks:
       - evaonline
 
   celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
     image: evaonline-runtime:latest
     container_name: evaonline-celery-worker
-    command: celery -A backend.infrastructure.celery.celery_config worker --loglevel=info --concurrency=2
     environment:
       - SERVICE=worker
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-evaonline}:${POSTGRES_PASSWORD:-dev-pass-change-me}@postgres:5432/${POSTGRES_DB:-evaonline}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-evaonline}:${POSTGRES_PASSWORD:-123456}@postgres:5432/${POSTGRES_DB:-evaonline}
       - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-dev-redis-pass-change-me}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://:dev-redis-pass-change-me@redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://:dev-redis-pass-change-me@redis:6379/0}
+      - REDIS_PASSWORD=evaonline
+      - CELERY_BROKER_URL=redis://:evaonline@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:evaonline@redis:6379/0
       - TZ=UTC
       - PYTHONUNBUFFERED=1
     volumes:
@@ -131,30 +110,26 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - redis
+      - postgres
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     networks:
       - evaonline
 
   celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
     image: evaonline-runtime:latest
     container_name: evaonline-celery-beat
-    command: celery -A backend.infrastructure.celery.celery_config beat --loglevel=info
     environment:
       - SERVICE=beat
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-evaonline}:${POSTGRES_PASSWORD:-dev-pass-change-me}@postgres:5432/${POSTGRES_DB:-evaonline}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-evaonline}:${POSTGRES_PASSWORD:-123456}@postgres:5432/${POSTGRES_DB:-evaonline}
       - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-dev-redis-pass-change-me}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://:dev-redis-pass-change-me@redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://:dev-redis-pass-change-me@redis:6379/0}
+      - REDIS_PASSWORD=evaonline
+      - CELERY_BROKER_URL=redis://:evaonline@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:evaonline@redis:6379/0
       - TZ=UTC
       - PYTHONUNBUFFERED=1
     volumes:
@@ -169,23 +144,21 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     networks:
       - evaonline
 
   flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
     image: evaonline-runtime:latest
     container_name: evaonline-flower
-    command: celery -A backend.infrastructure.celery.celery_config flower --port=5555
     environment:
       - SERVICE=flower
       - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-dev-redis-pass-change-me}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://:dev-redis-pass-change-me@redis:6379/0}
+      - REDIS_PASSWORD=evaonline
+      - CELERY_BROKER_URL=redis://:evaonline@redis:6379/0
       - PYTHONUNBUFFERED=1
     ports:
       - "5555:5555"
@@ -196,27 +169,13 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - celery-worker
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5555/api/workers"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     networks:
       - evaonline
 
   # ============================================================================
-  # TIER 3: MONITORING & ADMIN LAYER
+  # TIER 3: MONITORING & ADMIN LAYER (Opcional)
   # ============================================================================
 
   prometheus:
@@ -294,16 +253,6 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "nginx", "-t"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     networks:
       - evaonline
 

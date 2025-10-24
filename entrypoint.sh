@@ -45,7 +45,7 @@ case "${SERVICE:-all}" in
 
         # Executar migrações do banco de dados se necessário
         echo "Verificando migrações do banco de dados..."
-        python -c "from database.connection import get_db; db = next(get_db()); print('Conexão com banco estabelecida')" || echo "Aviso: Não foi possível verificar conexão com banco"
+        python -c "from backend.database.connection import get_db; db = next(get_db()); print('Conexão com banco estabelecida')" || echo "Aviso: Não foi possível verificar conexão com banco"
 
         # Iniciar FastAPI com Uvicorn
         echo "Iniciando FastAPI..."
@@ -88,7 +88,7 @@ case "${SERVICE:-all}" in
 
         # Executar migrações do banco de dados
         echo "Verificando migrações do banco de dados..."
-        python -c "from database.connection import get_db; db = next(get_db()); print('Conexão com banco estabelecida')" || echo "Aviso: Não foi possível verificar conexão com banco"
+        python -c "from backend.database.connection import get_db; db = next(get_db()); print('Conexão com banco estabelecida')" || echo "Aviso: Não foi possível verificar conexão com banco"
 
         # Iniciar FastAPI em background
         echo "Iniciando FastAPI..."
@@ -99,21 +99,21 @@ case "${SERVICE:-all}" in
 
         # Iniciar worker Celery em background
         echo "Iniciando Celery Worker..."
-        celery -A backend.celery_config worker --loglevel=info --concurrency=2 &
+        celery -A backend.infrastructure.celery.celery_config worker --loglevel=info --concurrency=2 &
 
         # Aguardar um pouco para worker iniciar
         sleep 3
 
         # Iniciar Celery Beat em background
         echo "Iniciando Celery Beat..."
-        celery -A backend.celery_config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler &
+        celery -A backend.infrastructure.celery.celery_config beat --loglevel=info &
 
         # Aguardar um pouco para beat iniciar
         sleep 3
 
         # Iniciar Flower em background
         echo "Iniciando Flower..."
-        celery -A backend.celery_config flower --address=0.0.0.0 --port=5555 &
+        celery -A backend.infrastructure.celery.celery_config flower --address=0.0.0.0 --port=5555 &
 
         # Manter container rodando
         echo "Todos os serviços iniciados. Container mantendo-se ativo..."

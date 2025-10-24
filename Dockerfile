@@ -9,11 +9,20 @@
 # 4. Fewer layers (combine RUN commands)
 # 5. Non-root user (segurança)
 # 6. Vulnerability scanning ready
+#
+# NOTA: Crie .dockerignore para otimizar:
+# **/.git
+# **/__pycache__
+# **/.env*
+# **/node_modules
+# **/tests
+# **/.pytest_cache
+# **/*.log
 
 # ===========================================
 # Stage 1: Builder
 # ===========================================
-FROM python:3.10-slim as builder
+FROM python:3.11-slim AS builder
 
 LABEL maintainer="Ângela Cunha Soares <angelassilviane@gmail.com>"
 LABEL stage="builder"
@@ -48,7 +57,7 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
 # ===========================================
 # Stage 2: Runtime (Slim verified base image)
 # ===========================================
-FROM python:3.10-slim as runtime
+FROM python:3.11-slim AS runtime
 
 LABEL maintainer="Ângela Cunha Soares <angelassilviane@gmail.com>"
 LABEL stage="runtime"
@@ -111,7 +120,7 @@ USER evaonline
 # Expor portas
 EXPOSE 8000 8050
 
-# Healthcheck
+# Healthcheck melhorado (fallback para múltiplos serviços)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health || \
     curl -f http://localhost:8050/ || \
@@ -123,7 +132,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 # ===========================================
 # Stage 3: Development (opcional)
 # ===========================================
-FROM runtime as development
+FROM runtime AS development
 
 LABEL stage="development"
 LABEL description="Development image with extra tools"
@@ -148,7 +157,7 @@ ENV FASTAPI_RELOAD=true \
 # ===========================================
 # Stage 4: Testing (opcional)
 # ===========================================
-FROM development as testing
+FROM development AS testing
 
 LABEL stage="testing"
 LABEL description="Testing image with pytest and coverage"

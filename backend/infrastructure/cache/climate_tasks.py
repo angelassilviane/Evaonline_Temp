@@ -83,7 +83,7 @@ POPULAR_WORLD_CITIES = [
 @shared_task(
     bind=True,
     max_retries=3,
-    name="climate.prefetch_nasa_popular_cities"
+    name="backend.infrastructure.cache.climate_tasks.prefetch_nasa_popular_cities"
 )
 def prefetch_nasa_popular_cities(self):
     """
@@ -101,8 +101,7 @@ def prefetch_nasa_popular_cities(self):
 
         # Importa dentro da task para evitar circular imports
         from backend.api.services.nasa_power_client import NASAPowerClient
-        from backend.infrastructure.cache.climate_cache import \
-            create_climate_cache
+        from backend.infrastructure.cache.climate_cache import create_climate_cache
 
         # Período: últimos 30 dias
         end = datetime.now()
@@ -176,7 +175,7 @@ def prefetch_nasa_popular_cities(self):
         raise self.retry(exc=e, countdown=300)  # 5 minutos
 
 
-@shared_task(name="climate.cleanup_old_cache")
+@shared_task(name="backend.infrastructure.cache.climate_tasks.cleanup_old_cache")
 def cleanup_old_cache():
     """
     Remove entradas de cache expiradas antigas.
@@ -188,7 +187,7 @@ def cleanup_old_cache():
         dict: Estatísticas de limpeza
     """
     try:
-        from redis.asyncio import Redis
+        import redis
 
         from config.settings import get_settings
 
@@ -196,13 +195,25 @@ def cleanup_old_cache():
 
         logger.info("🧹 Iniciando limpeza de cache climático antigo")
 
-        loop = asyncio.get_event_loop()
-        redis = Redis.from_url(settings.REDIS_URL, decode_responses=False)
+        r = redis.from_url(settings.REDIS_URL, decode_responses=True)
 
         # Busca todas as chaves 'climate:*'
-        keys = loop.run_until_complete(
-            redis.keys("climate:*")
-        )
+        keys = r.keys("climate:*")
+        removed_count = 0
+
+        for key in keys:
+            ttl = r.ttl(key)
+            # Se TTL <= 0 (expirado)
+            if ttl <= 0:
+                r.delete(key)
+                removed_count += 1
+
+        logger.info(f"✅ Removidas {removed_count} chaves de cache expiradas")
+        return {"status": "success", "removed_keys": removed_count}
+
+    except Exception as e:
+        logger.error(f"❌ Erro na limpeza de cache: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
         removed_count = 0
         kept_count = 0
@@ -236,7 +247,7 @@ def cleanup_old_cache():
         return {"status": "error", "message": str(e)}
 
 
-@shared_task(name="climate.generate_cache_stats")
+@shared_task(name="backend.infrastructure.cache.climate_tasks.generate_cache_stats")
 def generate_cache_stats():
     """
     Gera estatísticas de uso do cache.
@@ -248,31 +259,26 @@ def generate_cache_stats():
         dict: Estatísticas de cache
     """
     try:
-        from redis.asyncio import Redis
+        import redis
 
         from config.settings import get_settings
 
         settings = get_settings()
-        loop = asyncio.get_event_loop()
-        redis = Redis.from_url(settings.REDIS_URL, decode_responses=False)
+        r = redis.from_url(settings.REDIS_URL, decode_responses=True)
 
         # Conta chaves por fonte
         sources = ["nasa", "met", "nws", "openmeteo"]
         stats = {}
 
         for source in sources:
-            keys = loop.run_until_complete(
-                redis.keys(f"climate:{source}:*")
-            )
+            keys = r.keys(f"climate:{source}:*")
             stats[source] = {
                 "total_keys": len(keys),
                 "memory_mb": 0  # TODO: calcular tamanho real
             }
 
         # Total geral
-        total_keys = loop.run_until_complete(
-            redis.dbsize()
-        )
+        total_keys = r.dbsize()
 
         result = {
             "timestamp": datetime.now().isoformat(),
@@ -281,8 +287,6 @@ def generate_cache_stats():
         }
 
         logger.info(f"📊 Cache stats: {result}")
-
-        loop.run_until_complete(redis.close())
 
         return result
 

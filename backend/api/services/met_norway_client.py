@@ -30,7 +30,7 @@ class METNorwayConfig(BaseModel):
     retry_delay: float = 1.0
     user_agent: str = (
         "EVAonline/1.0 "
-        "(https://github.com/angelacunhasoares/EVAonline)"
+        "(https://github.com/angelassilviane/Evaonline_Temp)"
     )
 
 

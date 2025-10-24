@@ -3,6 +3,8 @@ Configuração do Celery para tarefas assíncronas do EVAonline.
 Centraliza todas as configurações do Celery para a aplicação.
 """
 import json
+import logging
+import time
 from datetime import datetime
 
 from celery import Celery
@@ -10,8 +12,9 @@ from celery.schedules import crontab
 from kombu import Queue
 from redis import Redis
 
-from backend.api.middleware.prometheus_metrics import CELERY_TASK_DURATION, CELERY_TASKS_TOTAL
 from config.settings import get_settings
+
+logger = logging.getLogger(__name__)
 
 # Carregar configurações
 settings = get_settings()
@@ -51,17 +54,36 @@ class MonitoredProgressTask(celery_app.Task):
 
     def __call__(self, *args, **kwargs):
         """Rastreia duração e status da tarefa para Prometheus."""
-        import time
         start_time = time.time()
         try:
             result = super().__call__(*args, **kwargs)
-            CELERY_TASKS_TOTAL.labels(task_name=self.name, status="SUCCESS").inc()
+            
+            # Registrar sucesso em Prometheus (se disponível)
+            try:
+                from backend.api.middleware.prometheus_metrics import CELERY_TASKS_TOTAL
+                CELERY_TASKS_TOTAL.labels(task_name=self.name, status="SUCCESS").inc()
+            except (ImportError, AttributeError):
+                pass  # Prometheus não disponível
+            
             return result
+            
         except Exception as e:
-            CELERY_TASKS_TOTAL.labels(task_name=self.name, status="FAILURE").inc()
+            # Registrar erro em Prometheus (se disponível)
+            try:
+                from backend.api.middleware.prometheus_metrics import CELERY_TASKS_TOTAL
+                CELERY_TASKS_TOTAL.labels(task_name=self.name, status="FAILURE").inc()
+            except (ImportError, AttributeError):
+                pass
+            
             raise
+            
         finally:
-            CELERY_TASK_DURATION.labels(task_name=self.name).observe(time.time() - start_time)
+            # Registrar duração em Prometheus (se disponível)
+            try:
+                from backend.api.middleware.prometheus_metrics import CELERY_TASK_DURATION
+                CELERY_TASK_DURATION.labels(task_name=self.name).observe(time.time() - start_time)
+            except (ImportError, AttributeError):
+                pass
 
 # Definir classe base para todas as tarefas
 celery_app.Task = MonitoredProgressTask
@@ -82,15 +104,13 @@ celery_app.conf.update(
     task_routes={
         "backend.core.eto_calculation.*": {"queue": "eto_processing"},
         "backend.core.data_processing.data_download.*": {"queue": "data_download"},
-        "backend.api.services.openmeteo.*": {"queue": "elevation"},
-        # REMOVIDO: backend.core.data_processing.data_fusion.* (arquivo deletado em FASE 1-2)
+        "backend.infrastructure.cache.*": {"queue": "data_processing"},
     },
     task_queues=(
         Queue("general"),
         Queue("eto_processing"),
         Queue("data_download"),
         Queue("data_processing"),
-        Queue("elevation"),
     ),
 )
 
@@ -98,27 +118,32 @@ celery_app.conf.update(
 celery_app.conf.beat_schedule = {
     # Limpeza de cache antigo (02:00 BRT)
     "cleanup-old-climate-cache": {
-        "task": "climate.cleanup_old_cache",
+        "task": "backend.infrastructure.cache.climate_tasks.cleanup_old_cache",
         "schedule": crontab(hour=2, minute=0),
+        "options": {"queue": "data_processing"}
     },
     # Pre-fetch cidades mundiais populares (03:00 BRT)
     "prefetch-nasa-popular-cities": {
-        "task": "climate.prefetch_nasa_popular_cities",
+        "task": "backend.infrastructure.cache.climate_tasks.prefetch_nasa_popular_cities",
         "schedule": crontab(hour=3, minute=0),
+        "options": {"queue": "data_processing"}
     },
     # Estatísticas de cache (a cada hora)
     "generate-cache-stats": {
-        "task": "climate.generate_cache_stats",
+        "task": "backend.infrastructure.cache.climate_tasks.generate_cache_stats",
         "schedule": crontab(minute=0),  # Todo início de hora
+        "options": {"queue": "data_processing"}
     },
     # Tasks legadas
     "cleanup-expired-data": {
         "task": "backend.infrastructure.cache.celery_tasks.cleanup_expired_data",
         "schedule": crontab(hour=0, minute=0),  # 00:00 diariamente
+        "options": {"queue": "data_processing"}
     },
     "update-popular-ranking": {
         "task": "backend.infrastructure.cache.celery_tasks.update_popular_ranking",
         "schedule": crontab(minute="*/10"),  # A cada 10 minutos
+        "options": {"queue": "data_processing"}
     },
 }
 
@@ -126,8 +151,6 @@ celery_app.conf.beat_schedule = {
 celery_app.autodiscover_tasks([
     "backend.infrastructure.cache.celery_tasks",
     "backend.infrastructure.cache.climate_tasks",
-    "backend.infrastructure.celery.tasks",
     "backend.core.eto_calculation",
     "backend.core.data_processing.data_download",
-    "backend.api.services.openmeteo",
 ])

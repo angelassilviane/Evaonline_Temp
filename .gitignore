@@ -33,12 +33,17 @@ share/python-wheels/
 MANIFEST
 
 # ===========================================
-# Virtual Environments
+# Environment Variables (SEGURANÇA)
 # ===========================================
+# Nunca versione .env com credentials reais
+# Sempre mantenha .env.example como template público
 .env
-.env.*
+.env.local
+.env.*.local
+.env.production  # Senha em prod
+.env.development # Senha em dev
+.env.test
 !.env.example
-.venv/
 venv/
 ENV/
 env.bak/
