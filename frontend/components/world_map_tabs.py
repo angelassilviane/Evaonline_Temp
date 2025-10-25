@@ -542,7 +542,8 @@ def _create_map_header(texts: Dict) -> dbc.Card:
                             color="info",
                             outline=True,
                             size="sm",
-                            className="action-btn"
+                            className="action-btn",
+                            title="Usar minha localização atual (GPS)"
                         ),
                         dbc.Button(
                             html.I(className="fas fa-calculator fa-lg"),
@@ -550,7 +551,8 @@ def _create_map_header(texts: Dict) -> dbc.Card:
                             color="success",
                             outline=True,
                             size="sm",
-                            className="action-btn"
+                            className="action-btn",
+                            title="Calcular ETo diária (rápido)"
                         ),
                         dbc.Button(
                             html.I(className="fas fa-calendar-alt fa-lg"),
@@ -558,7 +560,8 @@ def _create_map_header(texts: Dict) -> dbc.Card:
                             color="primary", 
                             outline=True,
                             size="sm",
-                            className="action-btn"
+                            className="action-btn",
+                            title="Calcular ETo do período (customizável)"
                         )
                     ], className="ms-2")
                     

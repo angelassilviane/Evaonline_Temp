@@ -88,6 +88,7 @@ services:
       - ./backend:/app/backend
       - ./frontend:/app/frontend
       - ./config:/app/config
+      - ./assets:/app/assets
       - ./data:/app/data
       - ./logs:/app/logs
     ports:
@@ -128,6 +129,7 @@ services:
       - ./backend:/app/backend
       - ./frontend:/app/frontend
       - ./config:/app/config
+      - ./assets:/app/assets
       - ./data:/app/data
       - ./logs:/app/logs
     depends_on:
@@ -161,6 +163,7 @@ services:
       - ./backend:/app/backend
       - ./frontend:/app/frontend
       - ./config:/app/config
+      - ./assets:/app/assets
       - ./data:/app/data
       - ./logs:/app/logs
     depends_on:

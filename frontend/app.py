@@ -3,12 +3,11 @@ Configuração e criação do aplicativo Dash para produção.
 """
 import os
 import sys
-from contextlib import asynccontextmanager
 from typing import Union
 
 import dash
 import dash_bootstrap_components as dbc
-from dash import dcc, html
+from dash import Input, Output, dcc, html
 from loguru import logger
 
 from config.settings import get_settings
@@ -65,7 +64,11 @@ def render_page_content(pathname: str) -> Union[html.Div, dbc.Container]:
             return html.Div([
                 html.H1("404", className="display-1 text-muted"),
                 html.P("Página não encontrada", className="lead"),
-                html.A("Voltar ao início", href="/", className="btn btn-primary")
+                html.A(
+                    "Voltar ao início",
+                    href="/",
+                    className="btn btn-primary"
+                )
             ], className="text-center mt-5")
     
     except Exception as e:
@@ -75,17 +78,6 @@ def render_page_content(pathname: str) -> Union[html.Div, dbc.Container]:
             html.P("Erro interno do servidor", className="lead"),
             html.A("Voltar ao início", href="/", className="btn btn-primary")
         ], className="text-center mt-5")
-
-
-@asynccontextmanager
-async def lifespan_app():
-    """Gerencia ciclo de vida da aplicação para recursos assíncronos."""
-    logger.info("🚀 Iniciando EVAonline em modo produção")
-    try:
-        # Inicializar conexões, caches, etc.
-        yield
-    finally:
-        logger.info("🛑 Encerrando EVAonline")
 
 
 def create_dash_app() -> dash.Dash:
@@ -110,7 +102,7 @@ def create_dash_app() -> dash.Dash:
             dbc.themes.BOOTSTRAP,
             'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
             'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-            'frontend/assets/styles/styles.css'
+            '/assets/css/styles.css'
         ],
         external_scripts=[
             'https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js',
@@ -174,23 +166,6 @@ def create_dash_app() -> dash.Dash:
     return app
 
 
-def run_production_server():
-    """Inicia o servidor com configurações de produção."""
-    app = create_dash_app()
-    
-    # Configurações do Gunicorn (quando executado via Gunicorn)
-    if __name__ != '__main__':
-        return app.server
-    
-    # Desenvolvimento local
-    app.run(
-        debug=settings.DEBUG,
-        host=getattr(settings, 'HOST', '127.0.0.1'),
-        port=getattr(settings, 'PORT', 8050),
-        dev_tools_hot_reload=settings.DEBUG,
-        dev_tools_ui=settings.DEBUG,
-    )
-
-
-if __name__ == '__main__':
-    run_production_server()
+# O app.py é apenas responsável por criar e configurar o Dash
+# Ele é importado por backend/main.py que monta o Dash no FastAPI
+# Não deve ser executado diretamente como __main__

@@ -53,9 +53,9 @@ class Settings(BaseSettings):
     # Usar caminho absoluto para assets (importante para Docker)
     @property
     def DASH_ASSETS_FOLDER(self) -> str:
-        """Caminho absoluto para pasta de assets do Dash."""
+        """Caminho absoluto para pasta de assets do Dash na raiz do projeto."""
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        assets_path = os.path.join(base_dir, "frontend", "assets")
+        assets_path = os.path.join(base_dir, "assets")
         return assets_path
     
     # Performance Dash

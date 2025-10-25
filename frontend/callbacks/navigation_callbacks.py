@@ -20,7 +20,8 @@ def register_navigation_callbacks(app: dash.Dash, render_page_content_func):
     # Callback para roteamento de páginas
     @app.callback(
         Output('page-content', 'children'),
-        [Input('url', 'pathname')]
+        [Input('url', 'pathname')],
+        prevent_initial_call=False
     )
     def display_page(pathname):
         """Renderiza página baseado na URL."""

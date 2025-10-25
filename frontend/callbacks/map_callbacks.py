@@ -289,38 +289,53 @@ def register_map_callbacks(app: dash.Dash):
         ], color="info", className="py-2 px-3 mb-0")
 
     @app.callback(
-        [Output('calculate-daily-eto-btn', 'href'),
-         Output('calculate-period-eto-btn', 'href')],
-        [Input('geolocation', 'position'),
-         Input('map', 'clickData')],
+        Output('url', 'pathname', allow_duplicate=True),
+        [Input('calculate-daily-eto-btn', 'n_clicks'),
+         Input('calculate-period-eto-btn', 'n_clicks')],
+        [State('geolocation', 'position'),
+         State('map', 'clickData'),
+         State('selected-location', 'data')],
         prevent_initial_call=True
     )
-    def update_action_buttons_links(
+    def handle_quick_actions(
+        daily_clicks, period_clicks,
         geo_position: Optional[Dict], 
-        click_data: Optional[Dict]
-    ) -> tuple:
-        """Atualiza links dos botões de ação."""
+        click_data: Optional[Dict],
+        location_data: Optional[Dict]
+    ) -> Optional[str]:
+        """Manipula ações rápidas dos botões (navegação)."""
         ctx = dash.callback_context
         if not ctx.triggered:
-            return dash.no_update, dash.no_update
+            return dash.no_update
         
         trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
         
         try:
-            if trigger_id == 'geolocation' and geo_position:
-                lat, lon = geo_position.get('lat', 0), geo_position.get('lon', 0)
-                href = f"/eto?lat={lat}&lon={lon}"
-                return href, href
+            # Obter coordenadas da geolocalização ou clique no mapa
+            lat, lon = None, None
             
-            if trigger_id == 'map' and click_data:
-                lat = click_data['latlng']['lat']
-                lng = click_data['latlng']['lng']
-                href = f"/eto?lat={lat}&lon={lng}"
-                return href, href
+            if geo_position:
+                lat, lon = geo_position.get('lat'), geo_position.get('lon')
+            elif click_data:
+                lat = click_data.get('latlng', {}).get('lat')
+                lon = click_data.get('latlng', {}).get('lng')
+            
+            if lat is None or lon is None:
+                logger.warning("Nenhuma localização disponível para ação rápida")
+                return dash.no_update
+            
+            # Redirecionar baseado no botão clicado
+            if trigger_id == 'calculate-daily-eto-btn':
+                # Calcular ETo diária (rápido)
+                return f"/eto?lat={lat}&lon={lon}&mode=daily"
+            
+            elif trigger_id == 'calculate-period-eto-btn':
+                # Ir para página de cálculo de período (customizável)
+                return f"/eto?lat={lat}&lon={lon}&mode=period"
                 
         except Exception as e:
-            logger.error(f"Erro em update_action_buttons_links: {e}")
+            logger.error(f"Erro em handle_quick_actions: {e}")
         
-        return dash.no_update, dash.no_update
+        return dash.no_update
 
     logger.info("✅ Callbacks do mapa registrados com sucesso")

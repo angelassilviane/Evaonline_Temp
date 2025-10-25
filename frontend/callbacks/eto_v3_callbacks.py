@@ -176,7 +176,7 @@ def register_eto_v3_callbacks(app: dash.Dash):
     # =========================================================================
     @app.callback(
         [Output('eto-results', 'children'),
-         Output('calculation-state', 'data')],
+         Output('calculation-state', 'data', allow_duplicate=True)],
         [Input('calculate-eto-btn', 'n_clicks')],
         [State('selected-location', 'data'),
          State('start-date-picker', 'date'),

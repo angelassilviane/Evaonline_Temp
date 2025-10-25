@@ -241,6 +241,8 @@ yarn-debug.log*
 yarn-error.log*
 .npm
 .yarn-integrity
+**/assets/node_modules/
+**/node_modules/
 
 # ===========================================
 # Backup and Recovery

@@ -37,8 +37,7 @@ class FooterManager:
             "fapesp": "https://fapesp.br/", 
             "ibm": "https://www.ibm.com/br-pt",
             "usp": "https://www5.usp.br/",
-            "esalq": "https://www.esalq.usp.br/",
-            "unesp": "https://www.unesp.br/"
+            "esalq": "https://www.esalq.usp.br/"
         }
     
     @lru_cache(maxsize=1) 
@@ -256,7 +255,7 @@ def _create_partners_section(texts: Dict) -> html.Div:
                         "objectFit": "contain"
                     },
                     className="partner-logo",
-                    **{"data-partner": partner}  # Metadata para analytics
+                    **{"data-partner": partner}
                 ),
                 href=url,
                 target="_blank",
